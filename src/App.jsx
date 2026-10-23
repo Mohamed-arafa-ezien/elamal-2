@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-// قائمة بكل الصلاحيات المتاحة في النظام
 const PERMISSION_LIST = [
   { key: 'viewDashboard', label: 'رؤية لوحة التحكم' },
   { key: 'viewChildren', label: 'رؤية قائمة الأطفال' },
@@ -10,6 +9,7 @@ const PERMISSION_LIST = [
   { key: 'collectFees', label: 'تحصيل دفعة (تسجيل إيراد)' },
   { key: 'viewAccounting', label: 'رؤية الإيرادات والمصروفات' },
   { key: 'addExpense', label: 'إضافة مصروف' },
+  { key: 'viewReports', label: 'رؤية التقارير (الحضور والمالية)' }, // 🛡️ صلاحية جديدة
   { key: 'manageClassrooms', label: 'إدارة الفصول' },
   { key: 'manageAttendance', label: 'تسجيل الحضور والغياب' },
   { key: 'manageActivities', label: 'إدارة الأنشطة' },
@@ -18,24 +18,23 @@ const PERMISSION_LIST = [
   { key: 'backupData', label: 'النسخ الاحتياطي والاسترجاع' },
 ];
 
-// الصلاحيات الافتراضية لكل وظيفة (عشان لما تضيف يوزر جديد يبدأ بيها)
 const DEFAULT_ROLE_PERMISSIONS = {
   admin: {
     viewDashboard: true, viewChildren: true, addChild: true, deleteChild: true,
     viewFees: true, collectFees: true, viewAccounting: true, addExpense: true,
-    manageClassrooms: true, manageAttendance: true, manageActivities: true,
+    viewReports: true, manageClassrooms: true, manageAttendance: true, manageActivities: true,
     manageVideos: true, manageUsers: true, backupData: true
   },
   teacher: {
     viewDashboard: true, viewChildren: true, addChild: true, deleteChild: true,
     viewFees: false, collectFees: false, viewAccounting: false, addExpense: false,
-    manageClassrooms: true, manageAttendance: true, manageActivities: true,
+    viewReports: false, manageClassrooms: true, manageAttendance: true, manageActivities: true,
     manageVideos: true, manageUsers: false, backupData: false
   },
   accountant: {
     viewDashboard: true, viewChildren: true, addChild: true, deleteChild: false,
     viewFees: true, collectFees: true, viewAccounting: true, addExpense: true,
-    manageClassrooms: false, manageAttendance: false, manageActivities: false,
+    viewReports: true, manageClassrooms: false, manageAttendance: false, manageActivities: false,
     manageVideos: false, manageUsers: false, backupData: false
   }
 };
@@ -47,7 +46,6 @@ export default function App() {
   const [passwordInput, setPasswordInput] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  // 🛡️ حالة المستخدمين
   const [users, setUsers] = useState(() => {
     const saved = localStorage.getItem('nursery_users');
     return saved ? JSON.parse(saved) : [
@@ -57,12 +55,20 @@ export default function App() {
     ];
   });
 
-  // 🛡️ الصلاحيات الخاصة بكل مستخدم (User-Level)
   const [userPermissions, setUserPermissions] = useState(() => {
     const saved = localStorage.getItem('nursery_user_permissions');
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // تحديث الصلاحيات للمستخدمين القدامى عشان ياخدوا الصلاحية الجديدة
+      const updated = { ...parsed };
+      users.forEach(u => {
+        if (updated[u.id] && updated[u.id].viewReports === undefined) {
+          updated[u.id].viewReports = DEFAULT_ROLE_PERMISSIONS[u.role].viewReports;
+        }
+      });
+      return updated;
+    }
     
-    // لو مفيش صلاحيات محفوظة، بنعمل صلاحيات افتراضية لكل يوزر موجود
     const initialPerms = {};
     users.forEach(u => {
       initialPerms[u.id] = { ...DEFAULT_ROLE_PERMISSIONS[u.role] };
@@ -70,24 +76,19 @@ export default function App() {
     return initialPerms;
   });
 
-  // تحديد اليوزر اللي بنعدل صلاحياته دلوقتي في الشاشة
   const [selectedUserId, setSelectedUserId] = useState(null);
 
   useEffect(() => { localStorage.setItem('nursery_users', JSON.stringify(users)); }, [users]);
   useEffect(() => { localStorage.setItem('nursery_user_permissions', JSON.stringify(userPermissions)); }, [userPermissions]);
 
-  // 🛡️ دالة فحص الصلاحية (بتبص على صلاحيات اليوزر الشخصية الأول)
   const hasPermission = (permissionKey) => {
     if (!currentUser) return false;
-    // لو الحساب admin أساسي، خليه يشوف كل حاجة دايماً
     if (currentUser.username === 'admin') return true;
     
-    // لو اليوزر ملوش صلاحيات مسجلة، نرجع للافتراضي بتاع وظيفته
     const perms = userPermissions[currentUser.id] || DEFAULT_ROLE_PERMISSIONS[currentUser.role];
     return perms?.[permissionKey] === true;
   };
 
-  // دالة تغيير صلاحية يوزر معين
   const toggleUserPermission = (userId, permissionKey) => {
     const user = users.find(u => u.id === userId);
     if (user && user.username === 'admin') {
@@ -107,7 +108,6 @@ export default function App() {
     });
   };
 
-  // باقي الـ States بتاعة البيانات
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newName, setNewName] = useState('');
@@ -235,6 +235,10 @@ export default function App() {
   const totalReceivableBalance = totalDueFeesAll - totalPaidRevenue;
   const netIncome = totalPaidRevenue - totalExpenses;
 
+  // حسابات تقرير الحضور
+  const presentCount = children.filter(c => c.status === 'present').length;
+  const absentCount = children.filter(c => c.status === 'absent').length;
+
   const handleLogin = (e) => {
     e.preventDefault();
     const found = users.find(u => u.username === usernameInput && u.password === passwordInput);
@@ -295,10 +299,7 @@ export default function App() {
     const newUserId = Date.now();
     const roleLabel = newRole === 'admin' ? 'مدير النظام' : newRole === 'teacher' ? 'معلمة' : 'محاسب';
     
-    // إضافة اليوزر
     setUsers([...users, { id: newUserId, username: newUsername, password: newPassword, name: newName, role: newRole, roleLabel }]);
-    
-    // إعطاء اليوزر الجديد الصلاحيات الافتراضية لوظيفته
     setUserPermissions(prev => ({
       ...prev,
       [newUserId]: { ...DEFAULT_ROLE_PERMISSIONS[newRole] }
@@ -325,7 +326,6 @@ export default function App() {
   const deleteUser = (id) => { 
     if (window.confirm('هل أنت متأكد من حذف الحساب؟')) {
       setUsers(users.filter(u => u.id !== id));
-      // مسح صلاحيات اليوزر المحذوف
       setUserPermissions(prev => {
         const newPerms = { ...prev };
         delete newPerms[id];
@@ -369,8 +369,9 @@ export default function App() {
   }
 
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="bg-indigo-700 text-white px-6 py-4 flex justify-between items-center shadow-md">
+    <div dir="rtl" className="min-h-screen bg-slate-50 flex flex-col print:bg-white">
+      {/* 🛡️ كلاس print:hidden بيخفي الهيدر وقت الطباعة */}
+      <header className="bg-indigo-700 text-white px-6 py-4 flex justify-between items-center shadow-md print:hidden">
         <div>
           <h1 className="text-lg font-bold">حضانة الأمل الخاصة ثنائية اللغة - بصنبو</h1>
           <p className="text-xs text-indigo-200">نظام الإدارة المالية الشاملة والاستحقاق الشهري</p>
@@ -382,8 +383,9 @@ export default function App() {
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col md:flex-row p-6 gap-6">
-        <aside className="w-full md:w-64 bg-white rounded-3xl p-4 border border-slate-200 shadow-sm h-fit">
+      <div className="flex-1 flex flex-col md:flex-row p-6 gap-6 print:p-0 print:block">
+        {/* 🛡️ الـ Sidebar بيختفي وقت الطباعة */}
+        <aside className="w-full md:w-64 bg-white rounded-3xl p-4 border border-slate-200 shadow-sm h-fit print:hidden">
           <nav className="space-y-1">
             {hasPermission('viewDashboard') && (
               <button onClick={() => setActiveTab('dashboard')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'dashboard' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}>📊 لوحة التحكم</button>
@@ -409,6 +411,11 @@ export default function App() {
               <button onClick={() => setActiveTab('accounting')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'accounting' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}>📈 الإيرادات والمصروفات</button>
             )}
 
+            {/* 🛡️ زرار التقارير الجديد */}
+            {hasPermission('viewReports') && (
+              <button onClick={() => setActiveTab('reports')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'reports' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}>📄 التقارير والطباعة</button>
+            )}
+
             {hasPermission('manageActivities') && (
               <button onClick={() => setActiveTab('activities')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'activities' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}>📅 الأنشطة اليومية</button>
             )}
@@ -423,10 +430,9 @@ export default function App() {
           </nav>
         </aside>
 
-        <main className="flex-1">
-          {/* ... نفس باقي الصفحات (لوحة التحكم، الأطفال، الرسوم، إلخ) زي ما هي بالظبط ... */}
+        <main className="flex-1 print:w-full print:m-0">
           {activeTab === 'dashboard' && hasPermission('viewDashboard') && (
-            <div className="space-y-6">
+            <div className="space-y-6 print:hidden">
               <div className="bg-indigo-600 rounded-3xl p-6 text-white shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <h2 className="text-xl font-bold mb-1">مرحباً بك في لوحة تحكم حضانة الأمل ✨</h2>
@@ -473,7 +479,7 @@ export default function App() {
           )}
 
           {activeTab === 'children' && hasPermission('viewChildren') && (
-            <div className="space-y-6">
+            <div className="space-y-6 print:hidden">
               {hasPermission('addChild') && (
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                   <h2 className="text-xl font-bold text-slate-800 mb-1">إضافة طفل جديد وتحديد القسط الشهري</h2>
@@ -537,9 +543,8 @@ export default function App() {
             </div>
           )}
 
-          {/* صفحة الرسوم */}
           {activeTab === 'fees' && hasPermission('viewFees') && (
-            <div className="space-y-6">
+            <div className="space-y-6 print:hidden">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                 <h2 className="text-xl font-bold text-slate-800 mb-1">تحصيل الرسوم وتسوية حسابات الطلاب</h2>
               </div>
@@ -593,9 +598,8 @@ export default function App() {
             </div>
           )}
 
-          {/* صفحة الحسابات */}
           {activeTab === 'accounting' && hasPermission('viewAccounting') && (
-            <div className="space-y-6">
+            <div className="space-y-6 print:hidden">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <span className="text-slate-400 text-xs font-semibold">إجمالي الإيرادات المحصلة</span>
@@ -680,9 +684,129 @@ export default function App() {
             </div>
           )}
 
-          {/* صفحة الفصول */}
-          {activeTab === 'classrooms' && hasPermission('manageClassrooms') && (
+          {/* 🛡️ صفحة التقارير والطباعة الجديدة */}
+          {activeTab === 'reports' && hasPermission('viewReports') && (
             <div className="space-y-6">
+              <div className="flex justify-between items-center print:hidden">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">التقارير الشاملة</h2>
+                  <p className="text-sm text-slate-500 mt-1">يمكنك طباعة هذا التقرير أو حفظه بصيغة PDF.</p>
+                </div>
+                <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition flex items-center gap-2">
+                  🖨️ طباعة / تصدير PDF
+                </button>
+              </div>
+
+              {/* منطقة الطباعة */}
+              <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm print:border-0 print:shadow-none print:p-0">
+                <div className="text-center mb-8 border-b-2 border-slate-800 pb-4">
+                  <h1 className="text-2xl font-bold text-slate-900">حضانة الأمل الخاصة ثنائية اللغة</h1>
+                  <p className="text-slate-600 mt-1">تقرير إداري ومالي شامل</p>
+                  <p className="text-sm text-slate-500 mt-1">تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
+                </div>
+
+                {/* تقرير الحضور والغياب */}
+                <div className="mb-10">
+                  <h2 className="text-lg font-bold text-indigo-900 bg-indigo-50 p-2 rounded-lg mb-4 print:bg-transparent print:border-b">1. تقرير الحضور والغياب اليومي</h2>
+                  
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="border border-slate-300 p-3 rounded-xl text-center">
+                      <span className="block text-sm text-slate-500 font-bold">إجمالي الأطفال</span>
+                      <span className="block text-xl font-bold text-slate-800">{children.length}</span>
+                    </div>
+                    <div className="border border-emerald-300 bg-emerald-50 p-3 rounded-xl text-center print:bg-transparent">
+                      <span className="block text-sm text-emerald-700 font-bold">الحضور اليوم</span>
+                      <span className="block text-xl font-bold text-emerald-800">{presentCount}</span>
+                    </div>
+                    <div className="border border-rose-300 bg-rose-50 p-3 rounded-xl text-center print:bg-transparent">
+                      <span className="block text-sm text-rose-700 font-bold">الغياب اليوم</span>
+                      <span className="block text-xl font-bold text-rose-800">{absentCount}</span>
+                    </div>
+                  </div>
+
+                  <table className="w-full text-right border-collapse border border-slate-300">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-700 text-sm">
+                        <th className="p-2 border border-slate-300">اسم الطفل</th>
+                        <th className="p-2 border border-slate-300">الفصل</th>
+                        <th className="p-2 border border-slate-300">الحالة</th>
+                        <th className="p-2 border border-slate-300">وقت الحضور</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-sm text-slate-800">
+                      {children.map(c => (
+                        <tr key={c.id}>
+                          <td className="p-2 border border-slate-300">{c.name}</td>
+                          <td className="p-2 border border-slate-300">{c.classroom}</td>
+                          <td className={`p-2 border border-slate-300 font-bold ${c.status === 'present' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {c.status === 'present' ? 'حاضر ✔️' : 'غائب ✖️'}
+                          </td>
+                          <td className="p-2 border border-slate-300 text-slate-500">{c.checkIn}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* التقرير المالي */}
+                <div>
+                  <h2 className="text-lg font-bold text-indigo-900 bg-indigo-50 p-2 rounded-lg mb-4 print:bg-transparent print:border-b">2. التقرير المالي والموقف العام</h2>
+                  
+                  <table className="w-full text-right border-collapse border border-slate-300 mb-6">
+                    <tbody className="text-sm text-slate-800">
+                      <tr>
+                        <td className="p-3 border border-slate-300 font-bold bg-slate-50 w-1/2">إجمالي الإيرادات المحصلة</td>
+                        <td className="p-3 border border-slate-300 text-emerald-700 font-bold">{totalPaidRevenue} ج.م</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 border border-slate-300 font-bold bg-slate-50">إجمالي المصروفات التشغيلية</td>
+                        <td className="p-3 border border-slate-300 text-rose-700 font-bold">{totalExpenses} ج.م</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 border border-slate-300 font-bold bg-slate-50">صافي الربح التشغيلي</td>
+                        <td className={`p-3 border border-slate-300 font-bold ${netIncome >= 0 ? 'text-indigo-700' : 'text-rose-700'}`}>{netIncome} ج.م</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 border border-slate-300 font-bold bg-slate-50">إجمالي الذمم (المتأخرات المالية)</td>
+                        <td className="p-3 border border-slate-300 text-amber-700 font-bold">{totalReceivableBalance} ج.م</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <h3 className="font-bold text-slate-800 mb-2">تفاصيل المصروفات:</h3>
+                  <table className="w-full text-right border-collapse border border-slate-300">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-700 text-sm">
+                        <th className="p-2 border border-slate-300">التاريخ</th>
+                        <th className="p-2 border border-slate-300">البيان</th>
+                        <th className="p-2 border border-slate-300">التصنيف</th>
+                        <th className="p-2 border border-slate-300">المبلغ</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-sm text-slate-800">
+                      {expenses.map(exp => (
+                        <tr key={exp.id}>
+                          <td className="p-2 border border-slate-300">{exp.date}</td>
+                          <td className="p-2 border border-slate-300">{exp.title}</td>
+                          <td className="p-2 border border-slate-300">{exp.category}</td>
+                          <td className="p-2 border border-slate-300 font-bold">{exp.amount} ج.م</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                <div className="mt-12 pt-8 border-t border-slate-300 flex justify-between text-sm text-slate-500 print:mt-20">
+                  <div>توقيع المدير: ..................................</div>
+                  <div>توقيع المحاسب: ..................................</div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'classrooms' && hasPermission('manageClassrooms') && (
+            <div className="space-y-6 print:hidden">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                 <h2 className="text-xl font-bold text-slate-800 mb-1">إدارة الفصول الدراسية</h2>
                 {hasPermission('manageUsers') && (
@@ -708,9 +832,8 @@ export default function App() {
             </div>
           )}
 
-          {/* صفحة الفيديوهات */}
           {activeTab === 'videos' && hasPermission('manageVideos') && (
-            <div className="space-y-6">
+            <div className="space-y-6 print:hidden">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                 <h2 className="text-xl font-bold text-slate-800 mb-1">الفيديوهات التعليمية</h2>
                 <form onSubmit={handleAddVideo} className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-4">
@@ -737,9 +860,8 @@ export default function App() {
             </div>
           )}
 
-          {/* صفحة الأنشطة */}
           {activeTab === 'activities' && hasPermission('manageActivities') && (
-            <div className="space-y-6">
+            <div className="space-y-6 print:hidden">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                 <h2 className="text-xl font-bold text-slate-800">جدول الأنشطة اليومية</h2>
                 <form onSubmit={handleAddActivity} className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -766,9 +888,8 @@ export default function App() {
             </div>
           )}
 
-          {/* صفحة الحضور */}
           {activeTab === 'attendance' && hasPermission('manageAttendance') && (
-            <div className="space-y-6">
+            <div className="space-y-6 print:hidden">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                 <h2 className="text-xl font-bold text-slate-800 mb-1">سجل الحضور والغياب اليومي</h2>
               </div>
@@ -798,14 +919,12 @@ export default function App() {
             </div>
           )}
 
-          {/* 🛡️ صفحة إدارة الصلاحيات (على مستوى المستخدم) */}
           {activeTab === 'permissions' && hasPermission('manageUsers') && (
-            <div className="space-y-6">
+            <div className="space-y-6 print:hidden">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                 <h2 className="text-xl font-bold text-slate-800 mb-4">إدارة الصلاحيات الشخصية (لكل مستخدم)</h2>
                 
                 <div className="flex flex-col md:flex-row gap-6">
-                  {/* قائمة المستخدمين */}
                   <div className="w-full md:w-1/3 border-l border-slate-100 pl-4">
                     <h3 className="font-bold text-slate-700 mb-3 text-sm">اختر المستخدم:</h3>
                     <div className="space-y-2">
@@ -825,7 +944,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* جدول صلاحيات المستخدم المختار */}
                   <div className="w-full md:w-2/3">
                     {selectedUserId ? (
                       <>
@@ -880,7 +998,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* إدارة المستخدمين (إضافة / حذف) */}
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm mt-6">
                 <h3 className="text-lg font-bold text-slate-800 mb-3">إضافة مستخدم جديد</h3>
                 <form onSubmit={handleAddUser} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
