@@ -1,5 +1,45 @@
 import React, { useState, useEffect } from 'react';
 
+// قائمة بكل الصلاحيات المتاحة في النظام
+const PERMISSION_LIST = [
+  { key: 'viewDashboard', label: 'رؤية لوحة التحكم' },
+  { key: 'viewChildren', label: 'رؤية قائمة الأطفال' },
+  { key: 'addChild', label: 'إضافة طفل جديد' },
+  { key: 'deleteChild', label: 'حذف طفل' },
+  { key: 'viewFees', label: 'رؤية صفحة الرسوم' },
+  { key: 'collectFees', label: 'تحصيل دفعة (تسجيل إيراد)' },
+  { key: 'viewAccounting', label: 'رؤية الإيرادات والمصروفات' },
+  { key: 'addExpense', label: 'إضافة مصروف' },
+  { key: 'manageClassrooms', label: 'إدارة الفصول' },
+  { key: 'manageAttendance', label: 'تسجيل الحضور والغياب' },
+  { key: 'manageActivities', label: 'إدارة الأنشطة' },
+  { key: 'manageVideos', label: 'إدارة الفيديوهات' },
+  { key: 'manageUsers', label: 'إدارة الصلاحيات والمستخدمين' },
+  { key: 'backupData', label: 'النسخ الاحتياطي والاسترجاع' },
+];
+
+// الصلاحيات الافتراضية لكل وظيفة (عشان لما تضيف يوزر جديد يبدأ بيها)
+const DEFAULT_ROLE_PERMISSIONS = {
+  admin: {
+    viewDashboard: true, viewChildren: true, addChild: true, deleteChild: true,
+    viewFees: true, collectFees: true, viewAccounting: true, addExpense: true,
+    manageClassrooms: true, manageAttendance: true, manageActivities: true,
+    manageVideos: true, manageUsers: true, backupData: true
+  },
+  teacher: {
+    viewDashboard: true, viewChildren: true, addChild: true, deleteChild: true,
+    viewFees: false, collectFees: false, viewAccounting: false, addExpense: false,
+    manageClassrooms: true, manageAttendance: true, manageActivities: true,
+    manageVideos: true, manageUsers: false, backupData: false
+  },
+  accountant: {
+    viewDashboard: true, viewChildren: true, addChild: true, deleteChild: false,
+    viewFees: true, collectFees: true, viewAccounting: true, addExpense: true,
+    manageClassrooms: false, manageAttendance: false, manageActivities: false,
+    manageVideos: false, manageUsers: false, backupData: false
+  }
+};
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -7,40 +47,7 @@ export default function App() {
   const [passwordInput, setPasswordInput] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  // 🛡️ 1. مصفوفة الصلاحيات الافتراضية (تتحفظ في المتصفح وتتحكم فيها بنفسك)
-  const [rolePermissions, setRolePermissions] = useState(() => {
-    const saved = localStorage.getItem('nursery_permissions');
-    return saved ? JSON.parse(saved) : {
-      admin: {
-        viewDashboard: true, viewChildren: true, addChild: true, deleteChild: true,
-        viewFees: true, collectFees: true, viewAccounting: true, addExpense: true,
-        manageClassrooms: true, manageAttendance: true, manageActivities: true,
-        manageVideos: true, manageUsers: true, backupData: true
-      },
-      teacher: {
-        viewDashboard: true, viewChildren: true, addChild: true, deleteChild: true,
-        viewFees: false, collectFees: false, viewAccounting: false, addExpense: false,
-        manageClassrooms: true, manageAttendance: true, manageActivities: true,
-        manageVideos: true, manageUsers: false, backupData: false
-      },
-      accountant: {
-        viewDashboard: true, viewChildren: true, addChild: true, deleteChild: false,
-        viewFees: true, collectFees: true, viewAccounting: true, addExpense: true,
-        manageClassrooms: false, manageAttendance: false, manageActivities: false,
-        manageVideos: false, manageUsers: false, backupData: false
-      }
-    };
-  });
-
-  // حفظ الصلاحيات في المتصفح عند أي تغيير
-  useEffect(() => { localStorage.setItem('nursery_permissions', JSON.stringify(rolePermissions)); }, [rolePermissions]);
-
-  // دالة مساعدة عشان نعرف هل اليوزر الحالي عنده الصلاحية دي ولا لأ
-  const hasPermission = (permissionKey) => {
-    if (!currentUser || !currentUser.role) return false;
-    return rolePermissions[currentUser.role]?.[permissionKey] === true;
-  };
-
+  // 🛡️ حالة المستخدمين
   const [users, setUsers] = useState(() => {
     const saved = localStorage.getItem('nursery_users');
     return saved ? JSON.parse(saved) : [
@@ -49,6 +56,58 @@ export default function App() {
       { id: 3, username: 'accountant', password: '123', name: 'محمد حسن', role: 'accountant', roleLabel: 'محاسب' }
     ];
   });
+
+  // 🛡️ الصلاحيات الخاصة بكل مستخدم (User-Level)
+  const [userPermissions, setUserPermissions] = useState(() => {
+    const saved = localStorage.getItem('nursery_user_permissions');
+    if (saved) return JSON.parse(saved);
+    
+    // لو مفيش صلاحيات محفوظة، بنعمل صلاحيات افتراضية لكل يوزر موجود
+    const initialPerms = {};
+    users.forEach(u => {
+      initialPerms[u.id] = { ...DEFAULT_ROLE_PERMISSIONS[u.role] };
+    });
+    return initialPerms;
+  });
+
+  // تحديد اليوزر اللي بنعدل صلاحياته دلوقتي في الشاشة
+  const [selectedUserId, setSelectedUserId] = useState(null);
+
+  useEffect(() => { localStorage.setItem('nursery_users', JSON.stringify(users)); }, [users]);
+  useEffect(() => { localStorage.setItem('nursery_user_permissions', JSON.stringify(userPermissions)); }, [userPermissions]);
+
+  // 🛡️ دالة فحص الصلاحية (بتبص على صلاحيات اليوزر الشخصية الأول)
+  const hasPermission = (permissionKey) => {
+    if (!currentUser) return false;
+    // لو الحساب admin أساسي، خليه يشوف كل حاجة دايماً
+    if (currentUser.username === 'admin') return true;
+    
+    // لو اليوزر ملوش صلاحيات مسجلة، نرجع للافتراضي بتاع وظيفته
+    const perms = userPermissions[currentUser.id] || DEFAULT_ROLE_PERMISSIONS[currentUser.role];
+    return perms?.[permissionKey] === true;
+  };
+
+  // دالة تغيير صلاحية يوزر معين
+  const toggleUserPermission = (userId, permissionKey) => {
+    const user = users.find(u => u.id === userId);
+    if (user && user.username === 'admin') {
+      alert('لا يمكن تعديل صلاحيات المدير الأساسي!');
+      return;
+    }
+
+    setUserPermissions(prev => {
+      const userPerms = prev[userId] || { ...DEFAULT_ROLE_PERMISSIONS[user.role] };
+      return {
+        ...prev,
+        [userId]: {
+          ...userPerms,
+          [permissionKey]: !userPerms[permissionKey]
+        }
+      };
+    });
+  };
+
+  // باقي الـ States بتاعة البيانات
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newName, setNewName] = useState('');
@@ -119,7 +178,6 @@ export default function App() {
   const [newActivityCategory, setNewActivityCategory] = useState('إنجاز');
   const [newActivityTime, setNewActivityTime] = useState('');
 
-  useEffect(() => { localStorage.setItem('nursery_users', JSON.stringify(users)); }, [users]);
   useEffect(() => { localStorage.setItem('nursery_children', JSON.stringify(children)); }, [children]);
   useEffect(() => { localStorage.setItem('nursery_revenues', JSON.stringify(revenues)); }, [revenues]);
   useEffect(() => { localStorage.setItem('nursery_expenses', JSON.stringify(expenses)); }, [expenses]);
@@ -128,7 +186,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('nursery_activities', JSON.stringify(activities)); }, [activities]);
 
   const handleExportData = () => {
-    const backupData = { users, children, revenues, expenses, classrooms, videos, activities, rolePermissions };
+    const backupData = { users, children, revenues, expenses, classrooms, videos, activities, userPermissions };
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -152,7 +210,7 @@ export default function App() {
         if (parsed.videos) setVideos(parsed.videos);
         if (parsed.activities) setActivities(parsed.activities);
         if (parsed.users) setUsers(parsed.users);
-        if (parsed.rolePermissions) setRolePermissions(parsed.rolePermissions);
+        if (parsed.userPermissions) setUserPermissions(parsed.userPermissions);
         alert('تم استرجاع كافة البيانات بنجاح تام! ✨');
       } catch (err) {
         alert('حدث خطأ: ملف النسخة الاحتياطية غير صالح!');
@@ -233,9 +291,21 @@ export default function App() {
   const handleAddUser = (e) => {
     e.preventDefault();
     if (!newUsername.trim() || !newPassword.trim() || !newName.trim()) return;
+    
+    const newUserId = Date.now();
     const roleLabel = newRole === 'admin' ? 'مدير النظام' : newRole === 'teacher' ? 'معلمة' : 'محاسب';
-    setUsers([...users, { id: Date.now(), username: newUsername, password: newPassword, name: newName, role: newRole, roleLabel }]);
+    
+    // إضافة اليوزر
+    setUsers([...users, { id: newUserId, username: newUsername, password: newPassword, name: newName, role: newRole, roleLabel }]);
+    
+    // إعطاء اليوزر الجديد الصلاحيات الافتراضية لوظيفته
+    setUserPermissions(prev => ({
+      ...prev,
+      [newUserId]: { ...DEFAULT_ROLE_PERMISSIONS[newRole] }
+    }));
+
     setNewUsername(''); setNewPassword(''); setNewName('');
+    alert('تم إضافة المستخدم بنجاح وتم تفعيل صلاحياته الافتراضية!');
   };
 
   const handleAddActivity = (e) => {
@@ -251,7 +321,19 @@ export default function App() {
   const deleteRevenue = (id) => { if (window.confirm('هل أنت متأكد من حذف هذا الإيراد؟')) setRevenues(revenues.filter(r => r.id !== id)); };
   const deleteVideo = (id) => { if (window.confirm('هل أنت متأكد من حذف الفيديو؟')) setVideos(videos.filter(v => v.id !== id)); };
   const deleteActivity = (id) => { if (window.confirm('هل أنت متأكد من حذف النشاط؟')) setActivities(activities.filter(a => a.id !== id)); };
-  const deleteUser = (id) => { if (window.confirm('هل أنت متأكد من حذف الحساب؟')) setUsers(users.filter(u => u.id !== id)); };
+  
+  const deleteUser = (id) => { 
+    if (window.confirm('هل أنت متأكد من حذف الحساب؟')) {
+      setUsers(users.filter(u => u.id !== id));
+      // مسح صلاحيات اليوزر المحذوف
+      setUserPermissions(prev => {
+        const newPerms = { ...prev };
+        delete newPerms[id];
+        return newPerms;
+      });
+      if (selectedUserId === id) setSelectedUserId(null);
+    }
+  };
 
   const handleStatusChange = (id, status) => {
     const updated = children.map(c => {
@@ -262,17 +344,6 @@ export default function App() {
       return c;
     });
     setChildren(updated);
-  };
-
-  // 🛡️ دالة تغيير الصلاحية من الشاشة
-  const togglePermission = (role, permissionKey) => {
-    setRolePermissions(prev => ({
-      ...prev,
-      [role]: {
-        ...prev[role],
-        [permissionKey]: !prev[role][permissionKey]
-      }
-    }));
   };
 
   if (!isLoggedIn) {
@@ -347,12 +418,13 @@ export default function App() {
             )}
 
             {hasPermission('manageUsers') && (
-              <button onClick={() => setActiveTab('permissions')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'permissions' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}>🔐 إدارة الصلاحيات</button>
+              <button onClick={() => setActiveTab('permissions')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'permissions' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}>🔐 إدارة الصلاحيات والمستخدمين</button>
             )}
           </nav>
         </aside>
 
         <main className="flex-1">
+          {/* ... نفس باقي الصفحات (لوحة التحكم، الأطفال، الرسوم، إلخ) زي ما هي بالظبط ... */}
           {activeTab === 'dashboard' && hasPermission('viewDashboard') && (
             <div className="space-y-6">
               <div className="bg-indigo-600 rounded-3xl p-6 text-white shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -465,6 +537,7 @@ export default function App() {
             </div>
           )}
 
+          {/* صفحة الرسوم */}
           {activeTab === 'fees' && hasPermission('viewFees') && (
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
@@ -520,6 +593,7 @@ export default function App() {
             </div>
           )}
 
+          {/* صفحة الحسابات */}
           {activeTab === 'accounting' && hasPermission('viewAccounting') && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -606,6 +680,7 @@ export default function App() {
             </div>
           )}
 
+          {/* صفحة الفصول */}
           {activeTab === 'classrooms' && hasPermission('manageClassrooms') && (
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
@@ -633,6 +708,7 @@ export default function App() {
             </div>
           )}
 
+          {/* صفحة الفيديوهات */}
           {activeTab === 'videos' && hasPermission('manageVideos') && (
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
@@ -661,6 +737,7 @@ export default function App() {
             </div>
           )}
 
+          {/* صفحة الأنشطة */}
           {activeTab === 'activities' && hasPermission('manageActivities') && (
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
@@ -689,6 +766,7 @@ export default function App() {
             </div>
           )}
 
+          {/* صفحة الحضور */}
           {activeTab === 'attendance' && hasPermission('manageAttendance') && (
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
@@ -720,53 +798,89 @@ export default function App() {
             </div>
           )}
 
+          {/* 🛡️ صفحة إدارة الصلاحيات (على مستوى المستخدم) */}
           {activeTab === 'permissions' && hasPermission('manageUsers') && (
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                <h2 className="text-xl font-bold text-slate-800 mb-1">إدارة الصلاحيات والمستخدمين</h2>
+                <h2 className="text-xl font-bold text-slate-800 mb-4">إدارة الصلاحيات الشخصية (لكل مستخدم)</h2>
                 
-                {/* 🛡️ جدول الصلاحيات الديناميكي */}
-                <div className="mt-6 overflow-x-auto">
-                  <table className="w-full text-right border-collapse">
-                    <thead>
-                      <tr className="bg-slate-100 text-slate-700 text-sm">
-                        <th className="p-3 font-bold border-b">الوظيفة / الصلاحية</th>
-                        <th className="p-3 font-bold border-b text-center text-indigo-700">معلمة</th>
-                        <th className="p-3 font-bold border-b text-center text-indigo-700">محاسب</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                      {[
-                        { key: 'viewDashboard', label: 'رؤية لوحة التحكم' },
-                        { key: 'viewChildren', label: 'رؤية قائمة الأطفال' },
-                        { key: 'addChild', label: 'إضافة طفل جديد' },
-                        { key: 'deleteChild', label: 'حذف طفل' },
-                        { key: 'viewFees', label: 'رؤية صفحة الرسوم' },
-                        { key: 'collectFees', label: 'تحصيل دفعة (تسجيل إيراد)' },
-                        { key: 'viewAccounting', label: 'رؤية الإيرادات والمصروفات' },
-                        { key: 'addExpense', label: 'إضافة مصروف' },
-                        { key: 'manageClassrooms', label: 'إدارة الفصول' },
-                        { key: 'manageAttendance', label: 'تسجيل الحضور والغياب' },
-                        { key: 'manageActivities', label: 'إدارة الأنشطة' },
-                        { key: 'manageVideos', label: 'إدارة الفيديوهات' },
-                        { key: 'backupData', label: 'النسخ الاحتياطي والاسترجاع' },
-                      ].map(perm => (
-                        <tr key={perm.key} className="hover:bg-slate-50">
-                          <td className="p-3 font-semibold">{perm.label}</td>
-                          <td className="p-3 text-center">
-                            <input type="checkbox" checked={rolePermissions.teacher[perm.key]} onChange={() => togglePermission('teacher', perm.key)} className="w-5 h-5 accent-emerald-600 cursor-pointer" />
-                          </td>
-                          <td className="p-3 text-center">
-                            <input type="checkbox" checked={rolePermissions.accountant[perm.key]} onChange={() => togglePermission('accountant', perm.key)} className="w-5 h-5 accent-emerald-600 cursor-pointer" />
-                          </td>
-                        </tr>
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* قائمة المستخدمين */}
+                  <div className="w-full md:w-1/3 border-l border-slate-100 pl-4">
+                    <h3 className="font-bold text-slate-700 mb-3 text-sm">اختر المستخدم:</h3>
+                    <div className="space-y-2">
+                      {users.map(u => (
+                        <button
+                          key={u.id}
+                          onClick={() => setSelectedUserId(u.id)}
+                          className={`w-full text-right px-4 py-3 rounded-xl text-sm font-semibold transition border ${selectedUserId === u.id ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span>{u.name}</span>
+                            <span className="text-xs bg-slate-100 px-2 py-1 rounded-md">{u.roleLabel}</span>
+                          </div>
+                          <span className="text-xs text-slate-400 font-normal">اسم المستخدم: {u.username}</span>
+                        </button>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </div>
+
+                  {/* جدول صلاحيات المستخدم المختار */}
+                  <div className="w-full md:w-2/3">
+                    {selectedUserId ? (
+                      <>
+                        <div className="mb-4 flex items-center gap-2">
+                          <h3 className="font-bold text-slate-800 text-lg">
+                            صلاحيات: {users.find(u => u.id === selectedUserId)?.name}
+                          </h3>
+                          {users.find(u => u.id === selectedUserId)?.username === 'admin' && (
+                            <span className="text-xs bg-rose-100 text-rose-600 px-2 py-1 rounded-md font-bold">حساب أساسي (غير قابل للتعديل)</span>
+                          )}
+                        </div>
+                        
+                        <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                          <table className="w-full text-right border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50 text-slate-700 text-sm">
+                                <th className="p-3 font-bold border-b">الصلاحية</th>
+                                <th className="p-3 font-bold border-b text-center w-24">السماح</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                              {PERMISSION_LIST.map(perm => {
+                                const user = users.find(u => u.id === selectedUserId);
+                                const isAdmin = user?.username === 'admin';
+                                const isAllowed = isAdmin ? true : (userPermissions[selectedUserId]?.[perm.key] ?? DEFAULT_ROLE_PERMISSIONS[user?.role]?.[perm.key] ?? false);
+                                
+                                return (
+                                  <tr key={perm.key} className="hover:bg-slate-50">
+                                    <td className="p-3 font-semibold">{perm.label}</td>
+                                    <td className="p-3 text-center">
+                                      <input 
+                                        type="checkbox" 
+                                        checked={isAllowed} 
+                                        onChange={() => toggleUserPermission(selectedUserId, perm.key)} 
+                                        disabled={isAdmin}
+                                        className={`w-5 h-5 accent-indigo-600 ${isAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} 
+                                      />
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-slate-400 font-semibold min-h-[200px]">
+                        👈 اختر مستخدم من القائمة لعرض وتعديل صلاحياته
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* إدارة المستخدمين */}
+              {/* إدارة المستخدمين (إضافة / حذف) */}
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm mt-6">
                 <h3 className="text-lg font-bold text-slate-800 mb-3">إضافة مستخدم جديد</h3>
                 <form onSubmit={handleAddUser} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
