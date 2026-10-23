@@ -32,11 +32,19 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMounted, setIsMounted] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  
+  // فلاتر التقارير
   const [reportFromDate, setReportFromDate] = useState('');
   const [reportToDate, setReportToDate] = useState('');
   const [reportChildId, setReportChildId] = useState('all');
   const [reportClassroom, setReportClassroom] = useState('all');
+  
+  // فلاتر الحضور والبحث
   const [searchChildQuery, setSearchChildQuery] = useState('');
+  const [attendanceFilterClassroom, setAttendanceFilterClassroom] = useState('all');
+  const [attendanceSearchQuery, setAttendanceSearchQuery] = useState('');
+  
+  // إيصال الدفع
   const [receiptData, setReceiptData] = useState(null);
 
   const [users, setUsers] = useState(() => {
@@ -57,6 +65,7 @@ export default function App() {
   });
 
   const [selectedUserId, setSelectedUserId] = useState(null);
+
   const [attendanceLogs, setAttendanceLogs] = useState(() => {
     const saved = localStorage.getItem('nursery_attendance_logs');
     if (saved) return JSON.parse(saved);
@@ -266,8 +275,16 @@ export default function App() {
   const filteredTotalRevenue = filteredRevenues.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
   const filteredTotalExpenses = filteredExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   const filteredNetIncome = filteredTotalRevenue - filteredTotalExpenses;
+  
   const childrenForFilter = reportClassroom === 'all' ? children : children.filter(c => c.classroom === reportClassroom);
   const searchedChildren = children.filter(c => c.name.includes(searchChildQuery) || c.phone.includes(searchChildQuery));
+
+  // فلاتر الحضور
+  const attendanceDisplayChildren = children.filter(c => {
+    const matchClass = attendanceFilterClassroom === 'all' || c.classroom === attendanceFilterClassroom;
+    const matchName = c.name.includes(attendanceSearchQuery);
+    return matchClass && matchName;
+  });
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -446,6 +463,7 @@ export default function App() {
       </header>
 
       <div className="flex-1 flex flex-col md:flex-row p-6 gap-6 print:p-0 print:block">
+        {/* القائمة الجانبية كاملة */}
         <aside className={`w-full md:w-64 rounded-3xl p-4 border shadow-sm h-fit print:hidden ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
           <nav className="space-y-1">
             {hasPermission('viewDashboard') && <button onClick={() => setActiveTab('dashboard')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'dashboard' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'hover:bg-slate-100 text-slate-500'}`}>📊 لوحة التحكم</button>}
@@ -455,12 +473,15 @@ export default function App() {
             {hasPermission('viewFees') && <button onClick={() => setActiveTab('fees')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'fees' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'hover:bg-slate-100 text-slate-500'}`}>💳 الرسوم والتحصيل</button>}
             {hasPermission('viewAccounting') && <button onClick={() => setActiveTab('accounting')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'accounting' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'hover:bg-slate-100 text-slate-500'}`}>📈 الإيرادات والمصروفات</button>}
             {hasPermission('viewReports') && <button onClick={() => setActiveTab('reports')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'reports' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'hover:bg-slate-100 text-slate-500'}`}>📄 التقارير الشاملة</button>}
+            {hasPermission('manageActivities') && <button onClick={() => setActiveTab('activities')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'activities' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'hover:bg-slate-100 text-slate-500'}`}>📅 الأنشطة اليومية</button>}
+            {hasPermission('manageVideos') && <button onClick={() => setActiveTab('videos')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'videos' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'hover:bg-slate-100 text-slate-500'}`}>🎥 الفيديوهات التعليمية</button>}
             {hasPermission('manageUsers') && <button onClick={() => setActiveTab('permissions')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'permissions' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'hover:bg-slate-100 text-slate-500'}`}>🔐 إدارة الصلاحيات والمستخدمين</button>}
           </nav>
         </aside>
 
         <main className="flex-1 print:w-full print:m-0">
           
+          {/* الداشبورد */}
           {activeTab === 'dashboard' && hasPermission('viewDashboard') && (
             <div className="space-y-6 print:hidden">
               <div className={`bg-gradient-to-l from-indigo-600 to-indigo-800 rounded-3xl p-8 text-white shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 transform transition-all duration-700 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
@@ -548,6 +569,7 @@ export default function App() {
             </div>
           )}
 
+          {/* الأطفال */}
           {activeTab === 'children' && hasPermission('viewChildren') && (
             <div className="space-y-6">
               <div className="hidden print:block text-center mb-6 border-b-2 border-slate-800 pb-4">
@@ -572,12 +594,15 @@ export default function App() {
                     <input type="date" value={newChildJoinDate} onChange={(e) => setNewChildJoinDate(e.target.value)} className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`} required />
                     <input type="tel" value={newChildPhone} onChange={(e) => setNewChildPhone(e.target.value)} placeholder="رقم ولي الأمر..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`} required />
                     <input type="number" value={newChildMonthlyFee} onChange={(e) => setNewChildMonthlyFee(e.target.value)} placeholder="القسط الشهري..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`} required />
+                    <select value={newChildClassroom} onChange={(e) => setNewChildClassroom(e.target.value)} className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`}>
+                      {classrooms.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    </select>
                     <select value={newChildBloodType} onChange={(e) => setNewChildBloodType(e.target.value)} className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`}><option value="O+">O+</option><option value="A+">A+</option><option value="B+">B+</option><option value="AB+">AB+</option><option value="O-">O-</option><option value="A-">A-</option><option value="B-">B-</option><option value="AB-">AB-</option></select>
-                    <input type="text" value={newChildAllergies} onChange={(e) => setNewChildAllergies(e.target.value)} placeholder="الحساسية..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`} />
                     <div className="flex gap-2">
-                      <input type="tel" value={newChildEmergencyContact} onChange={(e) => setNewChildEmergencyContact(e.target.value)} placeholder="رقم الطوارئ..." className={`flex-1 px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`} />
-                      <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm">إضافة ➕</button>
+                      <input type="text" value={newChildAllergies} onChange={(e) => setNewChildAllergies(e.target.value)} placeholder="الحساسية..." className={`w-1/2 px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`} />
+                      <input type="tel" value={newChildEmergencyContact} onChange={(e) => setNewChildEmergencyContact(e.target.value)} placeholder="رقم الطوارئ..." className={`w-1/2 px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`} />
                     </div>
+                    <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm md:col-span-4 mt-2">إضافة الطفل ➕</button>
                   </form>
                 </div>
               )}
@@ -615,6 +640,7 @@ export default function App() {
             </div>
           )}
 
+          {/* الرسوم */}
           {activeTab === 'fees' && hasPermission('viewFees') && (
             <div className="space-y-6">
               <div className="hidden print:block text-center mb-6 border-b-2 border-slate-800 pb-4">
@@ -655,6 +681,7 @@ export default function App() {
             </div>
           )}
 
+          {/* الحسابات */}
           {activeTab === 'accounting' && hasPermission('viewAccounting') && (
             <div className="space-y-6">
               <div className="hidden print:block text-center mb-6 border-b-2 border-slate-800 pb-4">
@@ -684,6 +711,17 @@ export default function App() {
                   </table>
                 </div>
               </div>
+              {hasPermission('addExpense') && (
+                <div className={`p-6 rounded-3xl border shadow-sm print:hidden mt-6 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <h3 className="text-lg font-bold mb-3">تسجيل مصروف جديد</h3>
+                  <form onSubmit={handleAddExpense} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <input type="text" value={newExpenseTitle} onChange={(e) => setNewExpenseTitle(e.target.value)} placeholder="بيان المصروف..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`} required />
+                    <input type="number" value={newExpenseAmount} onChange={(e) => setNewExpenseAmount(e.target.value)} placeholder="المبلغ..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`} required />
+                    <select value={newExpenseCategory} onChange={(e) => setNewExpenseCategory(e.target.value)} className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`}><option value="أجور ورواتب">أجور ورواتب</option><option value="إيجار ومرافق">إيجار ومرافق</option><option value="مستلزمات تعليمية">مستلزمات تعليمية</option><option value="صيانة وتشغيل">صيانة وتشغيل</option></select>
+                    <button type="submit" className="bg-rose-600 hover:bg-rose-700 text-white font-semibold px-4 py-2 rounded-xl text-sm">إضافة مصروف ➕</button>
+                  </form>
+                </div>
+              )}
               <div className={`rounded-3xl border shadow-sm mt-6 print:border-0 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
                 <div className="p-4 bg-rose-50 border-b print:bg-transparent"><h4 className="font-bold text-rose-800 text-sm print:text-black">سجل المصروفات</h4></div>
                 <div className="overflow-x-auto print:overflow-visible">
@@ -698,32 +736,44 @@ export default function App() {
             </div>
           )}
 
+          {/* الحضور */}
           {activeTab === 'attendance' && hasPermission('manageAttendance') && (
             <div className="space-y-6">
               <div className="hidden print:block text-center mb-6 border-b-2 border-slate-800 pb-4">
                 <h1 className="text-2xl font-bold">حضانة الأمل - تقرير الحضور اليومي</h1>
                 <p className="text-sm text-slate-500">تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
               </div>
-              <div className="flex justify-between items-center print:hidden">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
                 <h2 className="text-xl font-bold">سجل الحضور</h2>
-                <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md">🖨️ طباعة</button>
+                <div className="flex flex-wrap gap-2">
+                  <input type="text" placeholder="🔍 بحث بالاسم..." value={attendanceSearchQuery} onChange={(e) => setAttendanceSearchQuery(e.target.value)} className={`px-4 py-2 rounded-xl text-sm border ${isDarkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-slate-300'}`} />
+                  <select value={attendanceFilterClassroom} onChange={(e) => setAttendanceFilterClassroom(e.target.value)} className={`px-4 py-2 rounded-xl text-sm border ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'bg-white border-slate-300'}`}>
+                    <option value="all">كل الفصول</option>
+                    {classrooms.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
+                  <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md">🖨️ طباعة</button>
+                </div>
               </div>
               <div className={`rounded-3xl border shadow-sm print:border-0 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
                 <div className="overflow-x-auto print:overflow-visible">
                   <table className="w-full text-right border-collapse">
                     <thead><tr className={`text-xs ${isDarkMode ? 'bg-slate-700' : 'bg-slate-100'}`}><th className="p-4 font-bold">الطفل</th><th className="p-4 font-bold">الفصل</th><th className="p-4 font-bold">الحالة</th><th className="p-4 font-bold">الوقت</th><th className="p-4 text-center print:hidden">التحكم</th></tr></thead>
                     <tbody className="divide-y divide-slate-100 text-sm">
-                      {children.map(child => (
-                        <tr key={child.id} className="print:border-b">
-                          <td className="p-4 font-semibold">{child.name}</td><td className="p-4 text-xs">{child.classroom}</td>
-                          <td className={`p-4 font-bold ${child.status === 'present' ? 'text-emerald-500' : 'text-rose-500'}`}>{child.status === 'present' ? 'حاضر ✔️' : 'غائب ✖️'}</td>
-                          <td className="p-4 text-xs">{child.checkIn}</td>
-                          <td className="p-4 text-center space-x-2 print:hidden">
-                            <button onClick={() => handleStatusChange(child.id, 'present')} className={`px-3 py-1 rounded-xl text-xs font-bold ${child.status === 'present' ? 'bg-emerald-500 text-white' : 'bg-slate-200'}`}>حاضر ✔️</button>
-                            <button onClick={() => handleStatusChange(child.id, 'absent')} className={`px-3 py-1 rounded-xl text-xs font-bold ${child.status === 'absent' ? 'bg-rose-500 text-white' : 'bg-slate-200'}`}>غائب ✖️</button>
-                          </td>
-                        </tr>
-                      ))}
+                      {attendanceDisplayChildren.length === 0 ? (
+                        <tr><td colSpan="5" className="p-8 text-center text-slate-400">لا يوجد أطفال مطابقين للبحث أو الفلتر.</td></tr>
+                      ) : (
+                        attendanceDisplayChildren.map(child => (
+                          <tr key={child.id} className="print:border-b">
+                            <td className="p-4 font-semibold">{child.name}</td><td className="p-4 text-xs">{child.classroom}</td>
+                            <td className={`p-4 font-bold ${child.status === 'present' ? 'text-emerald-500' : 'text-rose-500'}`}>{child.status === 'present' ? 'حاضر ✔️' : 'غائب ✖️'}</td>
+                            <td className="p-4 text-xs">{child.checkIn}</td>
+                            <td className="p-4 text-center space-x-2 print:hidden">
+                              <button onClick={() => handleStatusChange(child.id, 'present')} className={`px-3 py-1 rounded-xl text-xs font-bold ${child.status === 'present' ? 'bg-emerald-500 text-white' : 'bg-slate-200'}`}>حاضر ✔️</button>
+                              <button onClick={() => handleStatusChange(child.id, 'absent')} className={`px-3 py-1 rounded-xl text-xs font-bold ${child.status === 'absent' ? 'bg-rose-500 text-white' : 'bg-slate-200'}`}>غائب ✖️</button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -731,6 +781,7 @@ export default function App() {
             </div>
           )}
 
+          {/* التقارير الشاملة */}
           {activeTab === 'reports' && hasPermission('viewReports') && (
             <div className="space-y-6">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center print:hidden gap-4">
@@ -784,6 +835,78 @@ export default function App() {
             </div>
           )}
 
+          {/* الفصول */}
+          {activeTab === 'classrooms' && hasPermission('manageClassrooms') && (
+            <div className="space-y-6 print:hidden">
+              <div className={`p-6 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                <h2 className="text-xl font-bold mb-4">إدارة الفصول الدراسية</h2>
+                {hasPermission('manageUsers') && (
+                  <form onSubmit={handleAddClassroom} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <input type="text" value={newClassroomName} onChange={(e) => setNewClassroomName(e.target.value)} placeholder="اسم الفصل..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700' : 'border-slate-300'}`} required />
+                    <input type="text" value={newClassroomSupervisor} onChange={(e) => setNewClassroomSupervisor(e.target.value)} placeholder="المشرفة..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700' : 'border-slate-300'}`} />
+                    <input type="text" value={newClassroomAge} onChange={(e) => setNewClassroomAge(e.target.value)} placeholder="الفئة العمرية..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700' : 'border-slate-300'}`} />
+                    <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm">إضافة فصل ➕</button>
+                  </form>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {classrooms.map(cls => (
+                  <div key={cls.id} className={`p-6 rounded-3xl border shadow-sm flex justify-between items-center ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div><h3 className="font-bold text-lg">{cls.name}</h3><p className="text-slate-400 text-xs mt-1">المشرفة: {cls.supervisor}</p></div>
+                    {hasPermission('manageUsers') && <button onClick={() => deleteClassroom(cls.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl">🗑️</button>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* الفيديوهات */}
+          {activeTab === 'videos' && hasPermission('manageVideos') && (
+            <div className="space-y-6 print:hidden">
+              <div className={`p-6 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                <h2 className="text-xl font-bold mb-4">الفيديوهات التعليمية</h2>
+                <form onSubmit={handleAddVideo} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <input type="text" value={newVideoTitle} onChange={(e) => setNewVideoTitle(e.target.value)} placeholder="عنوان الفيديو..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700' : 'border-slate-300'}`} required />
+                  <input type="url" value={newVideoUrl} onChange={(e) => setNewVideoUrl(e.target.value)} placeholder="رابط الفيديو..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700' : 'border-slate-300'}`} required />
+                  <select value={newVideoCategory} onChange={(e) => setNewVideoCategory(e.target.value)} className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700' : 'border-slate-300'}`}><option value="تعليمي">تعليمي</option><option value="ترفيهي">ترفيهي</option></select>
+                  <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm">إضافة فيديو ➕</button>
+                </form>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {videos.map(vid => (
+                  <div key={vid.id} className={`p-5 rounded-3xl border shadow-sm flex justify-between items-center ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div><h3 className="font-bold text-base mb-2">{vid.title}</h3><a href={vid.url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-500 font-semibold hover:underline">مشاهدة الفيديو 🎥</a></div>
+                    <button onClick={() => deleteVideo(vid.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl">🗑️</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* الأنشطة */}
+          {activeTab === 'activities' && hasPermission('manageActivities') && (
+            <div className="space-y-6 print:hidden">
+              <div className={`p-6 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                <h2 className="text-xl font-bold mb-4">جدول الأنشطة اليومية</h2>
+                <form onSubmit={handleAddActivity} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <input type="text" value={newActivityTitle} onChange={(e) => setNewActivityTitle(e.target.value)} placeholder="عنوان النشاط..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700' : 'border-slate-300'}`} required />
+                  <select value={newActivityCategory} onChange={(e) => setNewActivityCategory(e.target.value)} className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700' : 'border-slate-300'}`}><option value="إنجاز">إنجاز</option><option value="وجبات">وجبات</option></select>
+                  <input type="text" value={newActivityTime} onChange={(e) => setNewActivityTime(e.target.value)} placeholder="الوقت..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700' : 'border-slate-300'}`} required />
+                  <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm">إضافة نشاط ➕</button>
+                </form>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {activities.map(act => (
+                  <div key={act.id} className={`p-5 rounded-2xl border shadow-sm flex justify-between items-center ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div><h3 className="font-bold text-base mb-1">{act.title}</h3><p className="text-slate-400 text-xs">الوقت: {act.time}</p></div>
+                    <button onClick={() => deleteActivity(act.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl">🗑️</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* الصلاحيات */}
           {activeTab === 'permissions' && hasPermission('manageUsers') && (
             <div className="space-y-6 print:hidden">
               <div className={`p-6 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
