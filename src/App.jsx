@@ -9,7 +9,7 @@ const PERMISSION_LIST = [
   { key: 'collectFees', label: 'تحصيل دفعة (تسجيل إيراد)' },
   { key: 'viewAccounting', label: 'رؤية الإيرادات والمصروفات' },
   { key: 'addExpense', label: 'إضافة مصروف' },
-  { key: 'viewReports', label: 'رؤية التقارير (الحضور والمالية)' }, // 🛡️ صلاحية جديدة
+  { key: 'viewReports', label: 'رؤية التقارير الشاملة' },
   { key: 'manageClassrooms', label: 'إدارة الفصول' },
   { key: 'manageAttendance', label: 'تسجيل الحضور والغياب' },
   { key: 'manageActivities', label: 'إدارة الأنشطة' },
@@ -59,7 +59,6 @@ export default function App() {
     const saved = localStorage.getItem('nursery_user_permissions');
     if (saved) {
       const parsed = JSON.parse(saved);
-      // تحديث الصلاحيات للمستخدمين القدامى عشان ياخدوا الصلاحية الجديدة
       const updated = { ...parsed };
       users.forEach(u => {
         if (updated[u.id] && updated[u.id].viewReports === undefined) {
@@ -235,7 +234,6 @@ export default function App() {
   const totalReceivableBalance = totalDueFeesAll - totalPaidRevenue;
   const netIncome = totalPaidRevenue - totalExpenses;
 
-  // حسابات تقرير الحضور
   const presentCount = children.filter(c => c.status === 'present').length;
   const absentCount = children.filter(c => c.status === 'absent').length;
 
@@ -370,7 +368,7 @@ export default function App() {
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-50 flex flex-col print:bg-white">
-      {/* 🛡️ كلاس print:hidden بيخفي الهيدر وقت الطباعة */}
+      {/* 🛡️ الهيدر بيختفي وقت الطباعة */}
       <header className="bg-indigo-700 text-white px-6 py-4 flex justify-between items-center shadow-md print:hidden">
         <div>
           <h1 className="text-lg font-bold">حضانة الأمل الخاصة ثنائية اللغة - بصنبو</h1>
@@ -384,7 +382,7 @@ export default function App() {
       </header>
 
       <div className="flex-1 flex flex-col md:flex-row p-6 gap-6 print:p-0 print:block">
-        {/* 🛡️ الـ Sidebar بيختفي وقت الطباعة */}
+        {/* 🛡️ القائمة الجانبية بتختفي وقت الطباعة */}
         <aside className="w-full md:w-64 bg-white rounded-3xl p-4 border border-slate-200 shadow-sm h-fit print:hidden">
           <nav className="space-y-1">
             {hasPermission('viewDashboard') && (
@@ -411,9 +409,8 @@ export default function App() {
               <button onClick={() => setActiveTab('accounting')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'accounting' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}>📈 الإيرادات والمصروفات</button>
             )}
 
-            {/* 🛡️ زرار التقارير الجديد */}
             {hasPermission('viewReports') && (
-              <button onClick={() => setActiveTab('reports')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'reports' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}>📄 التقارير والطباعة</button>
+              <button onClick={() => setActiveTab('reports')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'reports' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}>📄 التقارير الشاملة</button>
             )}
 
             {hasPermission('manageActivities') && (
@@ -478,10 +475,23 @@ export default function App() {
             </div>
           )}
 
+          {/* 👶 صفحة الأطفال */}
           {activeTab === 'children' && hasPermission('viewChildren') && (
-            <div className="space-y-6 print:hidden">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center print:hidden">
+                <h2 className="text-xl font-bold text-slate-800">قائمة الأطفال</h2>
+                <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition">
+                  🖨️ طباعة تقرير الأطفال
+                </button>
+              </div>
+
+              <div className="hidden print:block text-center mb-6 border-b-2 border-slate-800 pb-4">
+                <h1 className="text-2xl font-bold">حضانة الأمل - تقرير الأطفال</h1>
+                <p className="text-sm text-slate-500">تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
+              </div>
+
               {hasPermission('addChild') && (
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm print:hidden">
                   <h2 className="text-xl font-bold text-slate-800 mb-1">إضافة طفل جديد وتحديد القسط الشهري</h2>
                   <form onSubmit={handleAddChild} className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-6 gap-3 mt-4">
                     <input type="text" value={newChildName} onChange={(e) => setNewChildName(e.target.value)} placeholder="اسم الطفل..." className="px-4 py-2 border border-slate-300 rounded-xl text-sm" required />
@@ -494,10 +504,10 @@ export default function App() {
                 </div>
               )}
 
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:border-0 print:shadow-none">
                 <table className="w-full text-right border-collapse">
                   <thead>
-                    <tr className="bg-slate-100 text-slate-600 text-xs">
+                    <tr className="bg-slate-100 text-slate-600 text-xs print:bg-white print:border-b-2 print:border-slate-800">
                       <th className="p-4 font-bold">اسم الطفل</th>
                       <th className="p-4 font-bold">تاريخ الدخول</th>
                       <th className="p-4 font-bold">رقم ولي الأمر</th>
@@ -509,7 +519,7 @@ export default function App() {
                           <th className="p-4 font-bold">المتبقي (الصافي)</th>
                         </>
                       )}
-                      {hasPermission('deleteChild') && <th className="p-4 font-bold text-center">إجراءات</th>}
+                      {hasPermission('deleteChild') && <th className="p-4 font-bold text-center print:hidden">إجراءات</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
@@ -517,7 +527,7 @@ export default function App() {
                       const totalDue = calculateTotalDueFee(child);
                       const balance = totalDue - (Number(child.paidFee) || 0);
                       return (
-                        <tr key={child.id} className="hover:bg-slate-50 transition">
+                        <tr key={child.id} className="hover:bg-slate-50 transition print:border-b print:border-slate-200">
                           <td className="p-4 font-semibold text-slate-800">{child.name}</td>
                           <td className="p-4 text-xs text-slate-500">{child.joinDate || '-'}</td>
                           <td className="p-4 text-xs font-mono text-slate-600">{child.phone}</td>
@@ -530,7 +540,7 @@ export default function App() {
                             </>
                           )}
                           {hasPermission('deleteChild') && (
-                            <td className="p-4 text-center">
+                            <td className="p-4 text-center print:hidden">
                               <button onClick={() => deleteChild(child.id)} className="text-rose-600 hover:bg-rose-50 p-1 rounded-xl">🗑️ حذف</button>
                             </td>
                           )}
@@ -543,21 +553,31 @@ export default function App() {
             </div>
           )}
 
+          {/* 💳 صفحة الرسوم */}
           {activeTab === 'fees' && hasPermission('viewFees') && (
-            <div className="space-y-6 print:hidden">
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                <h2 className="text-xl font-bold text-slate-800 mb-1">تحصيل الرسوم وتسوية حسابات الطلاب</h2>
+            <div className="space-y-6">
+              <div className="flex justify-between items-center print:hidden">
+                <h2 className="text-xl font-bold text-slate-800">تحصيل الرسوم وتسوية الحسابات</h2>
+                <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition">
+                  🖨️ طباعة تقرير الرسوم
+                </button>
               </div>
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+
+              <div className="hidden print:block text-center mb-6 border-b-2 border-slate-800 pb-4">
+                <h1 className="text-2xl font-bold">حضانة الأمل - تقرير تحصيل الرسوم</h1>
+                <p className="text-sm text-slate-500">تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:border-0 print:shadow-none">
                 <table className="w-full text-right border-collapse">
                   <thead>
-                    <tr className="bg-slate-100 text-slate-600 text-xs">
+                    <tr className="bg-slate-100 text-slate-600 text-xs print:bg-white print:border-b-2 print:border-slate-800">
                       <th className="p-4 font-bold">اسم الطفل</th>
                       <th className="p-4 font-bold">القسط الشهري</th>
                       <th className="p-4 font-bold">إجمالي المستحق</th>
                       <th className="p-4 font-bold">المدفوع</th>
                       <th className="p-4 font-bold">الصافي المتبقي</th>
-                      {hasPermission('collectFees') && <th className="p-4 font-bold text-center">تسجيل دفعة جديدة</th>}
+                      {hasPermission('collectFees') && <th className="p-4 font-bold text-center print:hidden">إجراء</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
@@ -565,27 +585,27 @@ export default function App() {
                       const totalDue = calculateTotalDueFee(child);
                       const balance = totalDue - (Number(child.paidFee) || 0);
                       return (
-                        <tr key={child.id} className="hover:bg-slate-50 transition">
+                        <tr key={child.id} className="hover:bg-slate-50 transition print:border-b print:border-slate-200">
                           <td className="p-4 font-semibold text-slate-800">{child.name}</td>
                           <td className="p-4 font-bold text-slate-700">{child.monthlyFee}</td>
                           <td className="p-4 font-bold text-indigo-600">{totalDue}</td>
                           <td className="p-4 font-bold text-emerald-600">{child.paidFee || 0}</td>
                           <td className="p-4">
                             <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${balance <= 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                              {balance <= 0 ? 'مخالص بالكامل ✔️' : `${balance} متبقي`}
+                              {balance <= 0 ? 'مخالص ✔️' : `${balance} متبقي`}
                             </span>
                           </td>
                           {hasPermission('collectFees') && (
-                            <td className="p-4 text-center">
+                            <td className="p-4 text-center print:hidden">
                               {balance > 0 ? (
                                 <button onClick={() => {
-                                  const pay = prompt(`أدخل المبلغ المسدد للطفل ${child.name} (المتبقي: ${balance}):`);
+                                  const pay = prompt(`أدخل المبلغ المسدد للطفل ${child.name}:`);
                                   if (pay) handlePaymentUpdate(child.id, pay);
                                 }} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold">
-                                  تحصيل دفعة وترحيل للإيرادات 💳
+                                  تحصيل 💳
                                 </button>
                               ) : (
-                                <span className="text-xs text-slate-400 font-semibold">لا يوجد مستحق</span>
+                                <span className="text-xs text-slate-400">لا يوجد</span>
                               )}
                             </td>
                           )}
@@ -598,41 +618,54 @@ export default function App() {
             </div>
           )}
 
+          {/* 📈 صفحة الحسابات */}
           {activeTab === 'accounting' && hasPermission('viewAccounting') && (
-            <div className="space-y-6 print:hidden">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center print:hidden">
+                <h2 className="text-xl font-bold text-slate-800">الإيرادات والمصروفات</h2>
+                <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition">
+                  🖨️ طباعة التقرير المالي
+                </button>
+              </div>
+
+              <div className="hidden print:block text-center mb-6 border-b-2 border-slate-800 pb-4">
+                <h1 className="text-2xl font-bold">حضانة الأمل - التقرير المالي</h1>
+                <p className="text-sm text-slate-500">تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                  <span className="text-slate-400 text-xs font-semibold">إجمالي الإيرادات المحصلة</span>
-                  <h3 className="text-2xl font-bold text-emerald-600 mt-1">{totalPaidRevenue}</h3>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm print:border-slate-800 print:rounded-none">
+                  <span className="text-slate-400 text-xs font-semibold print:text-slate-800">إجمالي الإيرادات المحصلة</span>
+                  <h3 className="text-2xl font-bold text-emerald-600 mt-1 print:text-black">{totalPaidRevenue}</h3>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                  <span className="text-slate-400 text-xs font-semibold">إجمالي المصروفات</span>
-                  <h3 className="text-2xl font-bold text-rose-600 mt-1">{totalExpenses}</h3>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm print:border-slate-800 print:rounded-none">
+                  <span className="text-slate-400 text-xs font-semibold print:text-slate-800">إجمالي المصروفات</span>
+                  <h3 className="text-2xl font-bold text-rose-600 mt-1 print:text-black">{totalExpenses}</h3>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                  <span className="text-slate-400 text-xs font-semibold">صافي الربح التشغيلي</span>
-                  <h3 className={`text-2xl font-bold mt-1 ${netIncome >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>{netIncome}</h3>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm print:border-slate-800 print:rounded-none">
+                  <span className="text-slate-400 text-xs font-semibold print:text-slate-800">صافي الربح التشغيلي</span>
+                  <h3 className={`text-2xl font-bold mt-1 print:text-black ${netIncome >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>{netIncome}</h3>
                 </div>
               </div>
 
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-4 bg-emerald-50 border-b border-slate-100"><h4 className="font-bold text-emerald-800 text-sm">سجل الإيرادات والمقبوضات المحصلة</h4></div>
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:border-0 print:shadow-none mt-8">
+                <div className="p-4 bg-emerald-50 border-b border-slate-100 print:bg-transparent print:border-b-2 print:border-slate-800"><h4 className="font-bold text-emerald-800 text-sm print:text-black">سجل الإيرادات</h4></div>
                 <table className="w-full text-right border-collapse">
                   <thead>
-                    <tr className="bg-slate-100 text-slate-600 text-xs">
+                    <tr className="bg-slate-100 text-slate-600 text-xs print:bg-white print:border-b print:border-slate-300">
                       <th className="p-4 font-bold">التاريخ</th>
-                      <th className="p-4 font-bold">بيان الإيراد / التحصيل</th>
-                      <th className="p-4 font-bold">المبلغ المحصل</th>
-                      <th className="p-4 font-bold text-center">حذف</th>
+                      <th className="p-4 font-bold">بيان الإيراد</th>
+                      <th className="p-4 font-bold">المبلغ</th>
+                      <th className="p-4 font-bold text-center print:hidden">حذف</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
                     {revenues.map(rev => (
-                      <tr key={rev.id}>
+                      <tr key={rev.id} className="print:border-b print:border-slate-200">
                         <td className="p-4 text-xs font-mono">{rev.date}</td>
                         <td className="p-4 font-semibold">{rev.title}</td>
-                        <td className="p-4 font-bold text-emerald-600">{rev.amount}</td>
-                        <td className="p-4 text-center"><button onClick={() => deleteRevenue(rev.id)} className="text-rose-600 hover:bg-rose-50 p-1 rounded-xl">🗑️ حذف</button></td>
+                        <td className="p-4 font-bold text-emerald-600 print:text-black">{rev.amount}</td>
+                        <td className="p-4 text-center print:hidden"><button onClick={() => deleteRevenue(rev.id)} className="text-rose-600 hover:bg-rose-50 p-1 rounded-xl">🗑️ حذف</button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -640,7 +673,7 @@ export default function App() {
               </div>
 
               {hasPermission('addExpense') && (
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm print:hidden">
                   <h3 className="text-lg font-bold text-slate-800 mb-3">تسجيل مصروف جديد</h3>
                   <form onSubmit={handleAddExpense} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <input type="text" value={newExpenseTitle} onChange={(e) => setNewExpenseTitle(e.target.value)} placeholder="بيان المصروف..." className="px-4 py-2 border border-slate-300 rounded-xl text-sm" required />
@@ -656,26 +689,26 @@ export default function App() {
                 </div>
               )}
 
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-4 bg-rose-50 border-b border-slate-100"><h4 className="font-bold text-rose-800 text-sm">سجل المصروفات التشغيلية والعمومية</h4></div>
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:border-0 print:shadow-none mt-8">
+                <div className="p-4 bg-rose-50 border-b border-slate-100 print:bg-transparent print:border-b-2 print:border-slate-800"><h4 className="font-bold text-rose-800 text-sm print:text-black">سجل المصروفات</h4></div>
                 <table className="w-full text-right border-collapse">
                   <thead>
-                    <tr className="bg-slate-100 text-slate-600 text-xs">
+                    <tr className="bg-slate-100 text-slate-600 text-xs print:bg-white print:border-b print:border-slate-300">
                       <th className="p-4 font-bold">التاريخ</th>
                       <th className="p-4 font-bold">بيان المصروف</th>
                       <th className="p-4 font-bold">التصنيف</th>
                       <th className="p-4 font-bold">المبلغ</th>
-                      <th className="p-4 font-bold text-center">حذف</th>
+                      <th className="p-4 font-bold text-center print:hidden">حذف</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
                     {expenses.map(exp => (
-                      <tr key={exp.id}>
+                      <tr key={exp.id} className="print:border-b print:border-slate-200">
                         <td className="p-4 text-xs font-mono">{exp.date}</td>
                         <td className="p-4 font-semibold">{exp.title}</td>
                         <td className="p-4 text-xs">{exp.category}</td>
-                        <td className="p-4 font-bold text-rose-600">{exp.amount}</td>
-                        <td className="p-4 text-center"><button onClick={() => deleteExpense(exp.id)} className="text-rose-600 hover:bg-rose-50 p-1 rounded-xl">🗑️ حذف</button></td>
+                        <td className="p-4 font-bold text-rose-600 print:text-black">{exp.amount}</td>
+                        <td className="p-4 text-center print:hidden"><button onClick={() => deleteExpense(exp.id)} className="text-rose-600 hover:bg-rose-50 p-1 rounded-xl">🗑️ حذف</button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -684,7 +717,54 @@ export default function App() {
             </div>
           )}
 
-          {/* 🛡️ صفحة التقارير والطباعة الجديدة */}
+          {/* 📋 صفحة الحضور */}
+          {activeTab === 'attendance' && hasPermission('manageAttendance') && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center print:hidden">
+                <h2 className="text-xl font-bold text-slate-800">سجل الحضور والغياب</h2>
+                <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition">
+                  🖨️ طباعة تقرير الحضور
+                </button>
+              </div>
+
+              <div className="hidden print:block text-center mb-6 border-b-2 border-slate-800 pb-4">
+                <h1 className="text-2xl font-bold">حضانة الأمل - تقرير الحضور والغياب</h1>
+                <p className="text-sm text-slate-500">تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:border-0 print:shadow-none">
+                <table className="w-full text-right border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-600 text-xs print:bg-white print:border-b-2 print:border-slate-800">
+                      <th className="p-4 font-bold">اسم الطفل</th>
+                      <th className="p-4 font-bold">الفصل</th>
+                      <th className="p-4 font-bold">الحالة</th>
+                      <th className="p-4 font-bold">وقت الحضور</th>
+                      <th className="p-4 font-bold text-center print:hidden">التحكم بالحالة</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                    {children.map(child => (
+                      <tr key={child.id} className="hover:bg-slate-50 transition print:border-b print:border-slate-200">
+                        <td className="p-4 font-semibold text-slate-800">{child.name}</td>
+                        <td className="p-4 text-xs text-slate-600">{child.classroom}</td>
+                        <td className={`p-4 font-bold ${child.status === 'present' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {child.status === 'present' ? 'حاضر ✔️' : 'غائب ✖️'}
+                        </td>
+                        <td className="p-4 text-xs text-slate-500">{child.checkIn}</td>
+                        <td className="p-4 text-center space-x-2 space-x-reverse print:hidden">
+                          <button onClick={() => handleStatusChange(child.id, 'present')} className={`px-3 py-1 rounded-xl text-xs font-bold transition ${child.status === 'present' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600'}`}>حاضر ✔️</button>
+                          <button onClick={() => handleStatusChange(child.id, 'absent')} className={`px-3 py-1 rounded-xl text-xs font-bold transition ${child.status === 'absent' ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-600'}`}>غائب ✖️</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* 📄 صفحة التقارير الشاملة */}
           {activeTab === 'reports' && hasPermission('viewReports') && (
             <div className="space-y-6">
               <div className="flex justify-between items-center print:hidden">
@@ -697,7 +777,6 @@ export default function App() {
                 </button>
               </div>
 
-              {/* منطقة الطباعة */}
               <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm print:border-0 print:shadow-none print:p-0">
                 <div className="text-center mb-8 border-b-2 border-slate-800 pb-4">
                   <h1 className="text-2xl font-bold text-slate-900">حضانة الأمل الخاصة ثنائية اللغة</h1>
@@ -705,7 +784,6 @@ export default function App() {
                   <p className="text-sm text-slate-500 mt-1">تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
                 </div>
 
-                {/* تقرير الحضور والغياب */}
                 <div className="mb-10">
                   <h2 className="text-lg font-bold text-indigo-900 bg-indigo-50 p-2 rounded-lg mb-4 print:bg-transparent print:border-b">1. تقرير الحضور والغياب اليومي</h2>
                   
@@ -748,7 +826,6 @@ export default function App() {
                   </table>
                 </div>
 
-                {/* التقرير المالي */}
                 <div>
                   <h2 className="text-lg font-bold text-indigo-900 bg-indigo-50 p-2 rounded-lg mb-4 print:bg-transparent print:border-b">2. التقرير المالي والموقف العام</h2>
                   
@@ -800,7 +877,6 @@ export default function App() {
                   <div>توقيع المدير: ..................................</div>
                   <div>توقيع المحاسب: ..................................</div>
                 </div>
-
               </div>
             </div>
           )}
@@ -884,37 +960,6 @@ export default function App() {
                     <button onClick={() => deleteActivity(act.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl">🗑️ حذف</button>
                   </div>
                 ))}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'attendance' && hasPermission('manageAttendance') && (
-            <div className="space-y-6 print:hidden">
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                <h2 className="text-xl font-bold text-slate-800 mb-1">سجل الحضور والغياب اليومي</h2>
-              </div>
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                <table className="w-full text-right border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-600 text-xs">
-                      <th className="p-4 font-bold">اسم الطفل</th>
-                      <th className="p-4 font-bold">وقت الحضور</th>
-                      <th className="p-4 font-bold text-center">التحكم بالحالة</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                    {children.map(child => (
-                      <tr key={child.id} className="hover:bg-slate-50 transition">
-                        <td className="p-4 font-semibold text-slate-800">{child.name}</td>
-                        <td className="p-4 text-xs text-slate-500">{child.checkIn}</td>
-                        <td className="p-4 text-center space-x-2 space-x-reverse">
-                          <button onClick={() => handleStatusChange(child.id, 'present')} className={`px-3 py-1 rounded-xl text-xs font-bold transition ${child.status === 'present' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600'}`}>حاضر ✔️</button>
-                          <button onClick={() => handleStatusChange(child.id, 'absent')} className={`px-3 py-1 rounded-xl text-xs font-bold transition ${child.status === 'absent' ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-600'}`}>غائب ✖️</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
             </div>
           )}
