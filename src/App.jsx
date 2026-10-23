@@ -7,7 +7,6 @@ export default function App() {
   const [passwordInput, setPasswordInput] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  // 1. إدارة المستخدمين والصلاحيات
   const [users, setUsers] = useState(() => {
     const saved = localStorage.getItem('nursery_users');
     return saved ? JSON.parse(saved) : [
@@ -21,7 +20,6 @@ export default function App() {
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState('teacher');
 
-  // 2. إدارة الأطفال والطلاب والتجديد الشهري
   const [children, setChildren] = useState(() => {
     const saved = localStorage.getItem('nursery_children');
     return saved ? JSON.parse(saved) : [
@@ -37,7 +35,6 @@ export default function App() {
   const [newChildClassroom, setNewChildClassroom] = useState('فصل الزهور');
   const [newChildMonthlyFee, setNewChildMonthlyFee] = useState('');
 
-  // 3. الإيرادات والمصروفات
   const [revenues, setRevenues] = useState(() => {
     const saved = localStorage.getItem('nursery_revenues');
     return saved ? JSON.parse(saved) : [
@@ -57,7 +54,6 @@ export default function App() {
   const [newExpenseAmount, setNewExpenseAmount] = useState('');
   const [newExpenseCategory, setNewExpenseCategory] = useState('أجور ورواتب');
 
-  // 4. الفصول الدراسية
   const [classrooms, setClassrooms] = useState(() => {
     const saved = localStorage.getItem('nursery_classrooms');
     return saved ? JSON.parse(saved) : [
@@ -69,7 +65,6 @@ export default function App() {
   const [newClassroomSupervisor, setNewClassroomSupervisor] = useState('');
   const [newClassroomAge, setNewClassroomAge] = useState('');
 
-  // 5. الفيديوهات والأنشطة
   const [videos, setVideos] = useState(() => {
     const saved = localStorage.getItem('nursery_videos');
     return saved ? JSON.parse(saved) : [
@@ -90,7 +85,6 @@ export default function App() {
   const [newActivityCategory, setNewActivityCategory] = useState('إنجاز');
   const [newActivityTime, setNewActivityTime] = useState('');
 
-  // الحفظ التلقائي في الـ LocalStorage
   useEffect(() => { localStorage.setItem('nursery_users', JSON.stringify(users)); }, [users]);
   useEffect(() => { localStorage.setItem('nursery_children', JSON.stringify(children)); }, [children]);
   useEffect(() => { localStorage.setItem('nursery_revenues', JSON.stringify(revenues)); }, [revenues]);
@@ -99,7 +93,6 @@ export default function App() {
   useEffect(() => { localStorage.setItem('nursery_videos', JSON.stringify(videos)); }, [videos]);
   useEffect(() => { localStorage.setItem('nursery_activities', JSON.stringify(activities)); }, [activities]);
 
-  // 💾 تصدير النسخة الاحتياطية
   const handleExportData = () => {
     const backupData = { users, children, revenues, expenses, classrooms, videos, activities };
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
@@ -111,7 +104,6 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  // 💾 استرجاع البيانات من الملف
   const handleImportData = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -134,7 +126,6 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  // حساب الاستحقاق الشهري الآلي
   const calculateTotalDueFee = (child) => {
     if (!child.joinDate || !child.monthlyFee) return Number(child.monthlyFee) || 0;
     const join = new Date(child.joinDate);
@@ -153,7 +144,6 @@ export default function App() {
   const totalReceivableBalance = totalDueFeesAll - totalPaidRevenue;
   const netIncome = totalPaidRevenue - totalExpenses;
 
-  // تسجيل الدخول
   const handleLogin = (e) => {
     e.preventDefault();
     const found = users.find(u => u.username === usernameInput && u.password === passwordInput);
@@ -166,7 +156,6 @@ export default function App() {
     }
   };
 
-  // إضافة طفل
   const handleAddChild = (e) => {
     e.preventDefault();
     if (!newChildName.trim() || !newChildDob.trim() || !newChildPhone.trim() || !newChildMonthlyFee) {
@@ -190,7 +179,6 @@ export default function App() {
     alert('تم إضافة الطفل وتفعيل الاستحقاق الشهري بنجاح!');
   };
 
-  // تحصيل دفعة وترحيل للإيرادات
   const handlePaymentUpdate = (childId, addedAmount) => {
     const amount = Number(addedAmount);
     if (isNaN(amount) || amount <= 0) return;
@@ -216,7 +204,6 @@ export default function App() {
     alert(`تم تحصيل مبلغ ${amount} وتسجيله فوراً في قائمة الإيرادات!`);
   };
 
-  // إضافة مصروف
   const handleAddExpense = (e) => {
     e.preventDefault();
     if (!newExpenseTitle.trim() || !newExpenseAmount) return;
@@ -261,7 +248,6 @@ export default function App() {
     setNewActivityTitle(''); setNewActivityTime('');
   };
 
-  // دوال الحذف
   const deleteChild = (id) => { if (window.confirm('هل أنت متأكد من حذف الطفل؟')) setChildren(children.filter(c => c.id !== id)); };
   const deleteClassroom = (id) => { if (window.confirm('هل أنت متأكد من حذف الفصل؟')) setClassrooms(classrooms.filter(c => c.id !== id)); };
   const deleteExpense = (id) => { if (window.confirm('هل أنت متأكد من حذف هذا المصروف؟')) setExpenses(expenses.filter(e => e.id !== id)); };
@@ -290,32 +276,13 @@ export default function App() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">اسم المستخدم</label>
-              <input
-                type="text"
-                value={usernameInput}
-                onChange={(e) => setUsernameInput(e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm"
-                placeholder="admin / teacher / accountant"
-                required
-              />
+              <input type="text" value={usernameInput} onChange={(e) => setUsernameInput(e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="admin / teacher / accountant" required />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">كلمة المرور</label>
-              <input
-                type="password"
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm"
-                placeholder="123"
-                required
-              />
+              <input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="123" required />
             </div>
-            <button
-              type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-xl transition shadow-lg text-sm"
-            >
-              تسجيل الدخول
-            </button>
+            <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-xl transition shadow-lg text-sm">تسجيل الدخول</button>
           </form>
         </div>
       </div>
@@ -331,12 +298,7 @@ export default function App() {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-sm font-bold">{currentUser?.name || currentUser?.username}</span>
-          <button
-            onClick={() => { setIsLoggedIn(false); setCurrentUser(null); }}
-            className="bg-indigo-800 hover:bg-indigo-900 px-3 py-1.5 rounded-xl text-xs transition"
-          >
-            خروج 🚪
-          </button>
+          <button onClick={() => { setIsLoggedIn(false); setCurrentUser(null); }} className="bg-indigo-800 hover:bg-indigo-900 px-3 py-1.5 rounded-xl text-xs transition">خروج 🚪</button>
         </div>
       </header>
 
@@ -366,14 +328,9 @@ export default function App() {
                   <p className="text-indigo-100 text-xs">متابعة الاستحقاقات الشهرية والإيرادات والمصروفات تلقائياً.</p>
                 </div>
                 <div className="flex gap-2">
-                  <button 
-                    onClick={handleExportData} 
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shadow transition"
-                  >
-                    💾 حفظ نسخة احتياطية
-                  </button>
+                  <button onClick={handleExportData} className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shadow transition">💾 حفظ نسخة</button>
                   <label className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shadow transition cursor-pointer">
-                    📂 استرجاع بيانات
+                    📂 استرجاع
                     <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
                   </label>
                 </div>
@@ -487,13 +444,10 @@ export default function App() {
                           </td>
                           <td className="p-4 text-center">
                             {balance > 0 ? (
-                              <button
-                                onClick={() => {
-                                  const pay = prompt(`أدخل المبلغ المسدد للطفل ${child.name} (المتبقي: ${balance}):`);
-                                  if (pay) handlePaymentUpdate(child.id, pay);
-                                }}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold"
-                              >
+                              <button onClick={() => {
+                                const pay = prompt(`أدخل المبلغ المسدد للطفل ${child.name} (المتبقي: ${balance}):`);
+                                if (pay) handlePaymentUpdate(child.id, pay);
+                              }} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold">
                                 تحصيل دفعة وترحيل للإيرادات 💳
                               </button>
                             ) : (
@@ -649,4 +603,104 @@ export default function App() {
           {activeTab === 'activities' && (
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                <h2 className="text-xl font-bold text-slate-800">جدول الأنشطة اليوم
+                <h2 className="text-xl font-bold text-slate-800">جدول الأنشطة اليومية</h2>
+                <form onSubmit={handleAddActivity} className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <input type="text" value={newActivityTitle} onChange={(e) => setNewActivityTitle(e.target.value)} placeholder="عنوان النشاط..." className="px-4 py-2 border border-slate-300 rounded-xl text-sm" required />
+                  <select value={newActivityCategory} onChange={(e) => setNewActivityCategory(e.target.value)} className="px-4 py-2 border border-slate-300 rounded-xl text-sm bg-white">
+                    <option value="إنجاز">إنجاز</option>
+                    <option value="وجبات">وجبات</option>
+                  </select>
+                  <input type="text" value={newActivityTime} onChange={(e) => setNewActivityTime(e.target.value)} placeholder="الوقت..." className="px-4 py-2 border border-slate-300 rounded-xl text-sm" required />
+                  <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm">إضافة نشاط ➕</button>
+                </form>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {activities.map(act => (
+                  <div key={act.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-base mb-1">{act.title}</h3>
+                      <p className="text-slate-400 text-xs">الوقت: {act.time}</p>
+                    </div>
+                    <button onClick={() => deleteActivity(act.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl">🗑️ حذف</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'attendance' && (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h2 className="text-xl font-bold text-slate-800 mb-1">سجل الحضور والغياب اليومي</h2>
+              </div>
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <table className="w-full text-right border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-600 text-xs">
+                      <th className="p-4 font-bold">اسم الطفل</th>
+                      <th className="p-4 font-bold">وقت الحضور</th>
+                      <th className="p-4 font-bold text-center">التحكم بالحالة</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                    {children.map(child => (
+                      <tr key={child.id} className="hover:bg-slate-50 transition">
+                        <td className="p-4 font-semibold text-slate-800">{child.name}</td>
+                        <td className="p-4 text-xs text-slate-500">{child.checkIn}</td>
+                        <td className="p-4 text-center space-x-2 space-x-reverse">
+                          <button onClick={() => handleStatusChange(child.id, 'present')} className={`px-3 py-1 rounded-xl text-xs font-bold transition ${child.status === 'present' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600'}`}>حاضر ✔️</button>
+                          <button onClick={() => handleStatusChange(child.id, 'absent')} className={`px-3 py-1 rounded-xl text-xs font-bold transition ${child.status === 'absent' ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-600'}`}>غائب ✖️</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'permissions' && currentUser?.role === 'admin' && (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h2 className="text-xl font-bold text-slate-800 mb-1">إدارة الصلاحيات والمستخدمين</h2>
+                <form onSubmit={handleAddUser} className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="الاسم الكامل..." className="px-4 py-2 border border-slate-300 rounded-xl text-sm" required />
+                  <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="اسم المستخدم..." className="px-4 py-2 border border-slate-300 rounded-xl text-sm" required />
+                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="كلمة المرور..." className="px-4 py-2 border border-slate-300 rounded-xl text-sm" required />
+                  <div className="flex gap-2">
+                    <select value={newRole} onChange={(e) => setNewRole(e.target.value)} className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white">
+                      <option value="admin">مدير النظام</option>
+                      <option value="teacher">معلمة</option>
+                      <option value="accountant">محاسب</option>
+                    </select>
+                    <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm">إضافة ➕</button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+                <h3 className="font-bold text-slate-800 text-base mb-4">قائمة مستخدمي النظام والصلاحيات</h3>
+                <div className="space-y-2">
+                  {users.map(u => (
+                    <div key={u.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                      <div>
+                        <span className="font-bold text-slate-800 text-sm block">{u.name}</span>
+                        <span className="text-xs text-slate-400">اسم المستخدم: {u.username}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="bg-indigo-100 text-indigo-700 text-xs px-3 py-1 rounded-full font-bold">{u.roleLabel}</span>
+                        {u.username !== 'admin' && (
+                          <button onClick={() => deleteUser(u.id)} className="text-rose-600 hover:bg-rose-50 p-1.5 rounded-xl">🗑️ حذف</button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
