@@ -7,7 +7,7 @@ export default function App() {
   const [passwordInput, setPasswordInput] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  // حالة الأطفال مع الحفظ في الذاكرة المحلية LocalStorage
+  // 1. حالة الأطفال مع الحفظ في الذاكرة المحلية
   const [children, setChildren] = useState(() => {
     const saved = localStorage.getItem('nursery_children');
     return saved ? JSON.parse(saved) : [
@@ -16,14 +16,43 @@ export default function App() {
       { id: 3, name: "عمر خالد", status: "absent", checkIn: "-" }
     ];
   });
-
   const [newChildName, setNewChildName] = useState('');
 
+  // 2. حالة الفصول الدراسية مع الحفظ في الذاكرة المحلية
+  const [classrooms, setClassrooms] = useState(() => {
+    const saved = localStorage.getItem('nursery_classrooms');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, name: "فصل البراعم" },
+      { id: 2, name: "فصل الزهور" }
+    ];
+  });
+  const [newClassroomName, setNewClassroomName] = useState('');
+
+  // 3. حالة المعلمات وطاقم العمل مع الحفظ في الذاكرة المحلية
+  const [teachers, setTeachers] = useState(() => {
+    const saved = localStorage.getItem('nursery_teachers');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, name: "أستاذة فاطمة", role: "معلمة أطفال" },
+      { id: 2, name: "أستاذة مريم", role: "معلمة مساعد" }
+    ];
+  });
+  const [newTeacherName, setNewTeacherName] = useState('');
+  const [newTeacherRole, setNewTeacherRole] = useState('');
+
+  // حفظ البيانات تلقائياً
   useEffect(() => {
     localStorage.setItem('nursery_children', JSON.stringify(children));
   }, [children]);
 
-  // دالة تسجيل الدخول (تدعم الحسابات الافتراضية والمستخدمين المخزنين)
+  useEffect(() => {
+    localStorage.setItem('nursery_classrooms', JSON.stringify(classrooms));
+  }, [classrooms]);
+
+  useEffect(() => {
+    localStorage.setItem('nursery_teachers', JSON.stringify(teachers));
+  }, [teachers]);
+
+  // دالة تسجيل الدخول
   const handleLogin = (e) => {
     e.preventDefault();
     const defaultUsers = [
@@ -45,7 +74,7 @@ export default function App() {
     }
   };
 
-  // دالة إضافة الأطفال (مع منع إعادة تحميل الصفحة وحفظ البيانات)
+  // إضافة طفل
   const handleAddChild = (e) => {
     e.preventDefault();
     if (!newChildName.trim()) {
@@ -63,7 +92,41 @@ export default function App() {
     alert('تم إضافة الطفل بنجاح!');
   };
 
-  // تحديث حالة الحضور والغياب
+  // إضافة فصل
+  const handleAddClassroom = (e) => {
+    e.preventDefault();
+    if (!newClassroomName.trim()) {
+      alert('الرجاء إدخال اسم الفصل');
+      return;
+    }
+    const newClass = {
+      id: Date.now(),
+      name: newClassroomName
+    };
+    setClassrooms([...classrooms, newClass]);
+    setNewClassroomName('');
+    alert('تم إضافة الفصل بنجاح!');
+  };
+
+  // إضافة معلمة
+  const handleAddTeacher = (e) => {
+    e.preventDefault();
+    if (!newTeacherName.trim()) {
+      alert('الرجاء إدخال اسم المعلمة');
+      return;
+    }
+    const newTeach = {
+      id: Date.now(),
+      name: newTeacherName,
+      role: newTeacherRole || 'معلمة'
+    };
+    setTeachers([...teachers, newTeach]);
+    setNewTeacherName('');
+    setNewTeacherRole('');
+    alert('تم إضافة المعلمة بنجاح!');
+  };
+
+  // تحديث الحضور
   const handleStatusChange = (id, status) => {
     const updated = children.map(child => {
       if (child.id === id) {
@@ -121,7 +184,7 @@ export default function App() {
     );
   }
 
-  // واجهة لوحة التحكم الرئيسية بعد تسجيل الدخول
+  // الواجهة الرئيسية
   return (
     <div dir="rtl" className="min-h-screen bg-slate-100 flex flex-col md:flex-row">
       {/* القائمة الجانبية */}
@@ -148,6 +211,18 @@ export default function App() {
             >
               👶 إدارة الأطفال
             </button>
+            <button
+              onClick={() => setActiveTab('classrooms')}
+              className={`w-full text-right px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'classrooms' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}
+            >
+              🏫 إدارة الفصول
+            </button>
+            <button
+              onClick={() => setActiveTab('teachers')}
+              className={`w-full text-right px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'teachers' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}
+            >
+              👩‍🏫 إدارة المعلمات
+            </button>
           </nav>
         </div>
         <button
@@ -164,18 +239,20 @@ export default function App() {
           <div className="space-y-6">
             <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl p-6 text-white shadow-md">
               <h1 className="text-2xl font-bold mb-1">مرحباً بك في نظام حضانة الأمل ✨</h1>
-              <p className="text-indigo-100 text-sm">إدارة شؤون الأطفال والحضور والغياب بكل سهولة.</p>
+              <p className="text-indigo-100 text-sm">إدارة شؤون الأطفال، الفصول، والمعلمات بكل سهولة.</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <span className="text-slate-400 text-sm">إجمالي الأطفال المسجلين</span>
+                <span className="text-slate-400 text-sm">إجمالي الأطفال</span>
                 <h3 className="text-3xl font-bold text-slate-800 mt-1">{children.length}</h3>
               </div>
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <span className="text-slate-400 text-sm">الحاضرون اليوم</span>
-                <h3 className="text-3xl font-bold text-emerald-600 mt-1">
-                  {children.filter(c => c.status === 'present').length}
-                </h3>
+                <span className="text-slate-400 text-sm">إجمالي الفصول</span>
+                <h3 className="text-3xl font-bold text-indigo-600 mt-1">{classrooms.length}</h3>
+              </div>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <span className="text-slate-400 text-sm">إجمالي المعلمات</span>
+                <h3 className="text-3xl font-bold text-emerald-600 mt-1">{teachers.length}</h3>
               </div>
             </div>
           </div>
@@ -246,6 +323,78 @@ export default function App() {
                   <li key={child.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <span className="font-medium text-slate-800">{child.name}</span>
                     <span className="text-xs text-slate-500">الحالة: {child.status === 'present' ? 'حاضر' : 'غائب'}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'classrooms' && (
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-6">إدارة الفصول الدراسية</h2>
+            <form onSubmit={handleAddClassroom} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6 flex gap-3">
+              <input
+                type="text"
+                value={newClassroomName}
+                onChange={(e) => setNewClassroomName(e.target.value)}
+                placeholder="أدخل اسم الفصل الجديد (مثل: فصل النجوم)..."
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <button
+                type="submit"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2 rounded-xl transition shadow-md"
+              >
+                إضافة فصل 🏫
+              </button>
+            </form>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <h3 className="font-bold text-slate-700 mb-4">قائمة الفصول المسجلة</h3>
+              <ul className="space-y-2">
+                {classrooms.map(cls => (
+                  <li key={cls.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <span className="font-medium text-slate-800">{cls.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'teachers' && (
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-6">إدارة المعلمات وطاقم العمل</h2>
+            <form onSubmit={handleAddTeacher} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                value={newTeacherName}
+                onChange={(e) => setNewTeacherName(e.target.value)}
+                placeholder="اسم المعلمة..."
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <input
+                type="text"
+                value={newTeacherRole}
+                onChange={(e) => setNewTeacherRole(e.target.value)}
+                placeholder="المسمى الوظيفي (مثال: معلمة لغة عربية)..."
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <button
+                type="submit"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2 rounded-xl transition shadow-md"
+              >
+                إضافة معلمة 👩‍🏫
+              </button>
+            </form>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <h3 className="font-bold text-slate-700 mb-4">قائمة المعلمات المسجلات</h3>
+              <ul className="space-y-2">
+                {teachers.map(teach => (
+                  <li key={teach.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <span className="font-medium text-slate-800">{teach.name}</span>
+                    <span className="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full">{teach.role}</span>
                   </li>
                 ))}
               </ul>
