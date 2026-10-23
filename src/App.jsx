@@ -45,11 +45,8 @@ export default function App() {
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
-
-  // 🎬 متغير عشان نشغل الأنيميشن لما الداشبورد تفتح
   const [isMounted, setIsMounted] = useState(false);
 
-  // 🛡️ فلاتر التقارير
   const [reportFromDate, setReportFromDate] = useState('');
   const [reportToDate, setReportToDate] = useState('');
   const [reportChildId, setReportChildId] = useState('all');
@@ -57,7 +54,7 @@ export default function App() {
   const [users, setUsers] = useState(() => {
     const saved = localStorage.getItem('nursery_users');
     return saved ? JSON.parse(saved) : [
-      { id: 1, username: 'admin', password: '123', name: 'أحمد محمود', role: 'admin', roleLabel: 'مدير النظام' },
+      { id: 1, username: 'admin', password: '123', name: 'محمد عرفه', role: 'admin', roleLabel: 'مدير النظام' },
       { id: 2, username: 'teacher', password: '123', name: 'سارة علي', role: 'teacher', roleLabel: 'معلمة' },
       { id: 3, username: 'accountant', password: '123', name: 'محمد حسن', role: 'accountant', roleLabel: 'محاسب' }
     ];
@@ -93,11 +90,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('nursery_users', JSON.stringify(users)); }, [users]);
   useEffect(() => { localStorage.setItem('nursery_user_permissions', JSON.stringify(userPermissions)); }, [userPermissions]);
   useEffect(() => { localStorage.setItem('nursery_attendance_logs', JSON.stringify(attendanceLogs)); }, [attendanceLogs]);
-
-  // تشغيل الأنيميشن أول ما الصفحة تحمل
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  useEffect(() => { setIsMounted(true); }, []);
 
   const hasPermission = (permissionKey) => {
     if (!currentUser) return false;
@@ -258,6 +251,31 @@ export default function App() {
   const absentCount = children.filter(c => c.status === 'absent').length;
   const attendancePercentage = children.length === 0 ? 0 : Math.round((presentCount / children.length) * 100);
 
+  const filteredLogs = attendanceLogs
+    .filter(log => {
+      const matchFrom = !reportFromDate || log.date >= reportFromDate;
+      const matchTo = !reportToDate || log.date <= reportToDate;
+      const matchChild = reportChildId === 'all' || log.childId === Number(reportChildId);
+      return matchFrom && matchTo && matchChild;
+    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const filteredRevenues = revenues.filter(rev => {
+    const matchFrom = !reportFromDate || rev.date >= reportFromDate;
+    const matchTo = !reportToDate || rev.date <= reportToDate;
+    return matchFrom && matchTo;
+  });
+
+  const filteredExpenses = expenses.filter(exp => {
+    const matchFrom = !reportFromDate || exp.date >= reportFromDate;
+    const matchTo = !reportToDate || exp.date <= reportToDate;
+    return matchFrom && matchTo;
+  });
+
+  const filteredTotalRevenue = filteredRevenues.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  const filteredTotalExpenses = filteredExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const filteredNetIncome = filteredTotalRevenue - filteredTotalExpenses;
+
   const handleLogin = (e) => {
     e.preventDefault();
     const found = users.find(u => u.username === usernameInput && u.password === passwordInput);
@@ -373,15 +391,6 @@ export default function App() {
     });
   };
 
-  const filteredLogs = attendanceLogs
-    .filter(log => {
-      const matchFrom = !reportFromDate || log.date >= reportFromDate;
-      const matchTo = !reportToDate || log.date <= reportToDate;
-      const matchChild = reportChildId === 'all' || log.childId === Number(reportChildId);
-      return matchFrom && matchTo && matchChild;
-    })
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
-
   const PrintHeader = ({ title }) => (
     <div className="hidden print:block text-center mb-8 border-b-2 border-slate-800 pb-4">
       <h1 className="text-2xl font-bold text-slate-900">حضانة الأمل الخاصة ثنائية اللغة</h1>
@@ -390,7 +399,6 @@ export default function App() {
     </div>
   );
 
-  // حسابات الرسوم البيانية
   const maxFinance = Math.max(totalPaidRevenue, totalExpenses, Math.abs(netIncome), 1000); 
   const revenueHeight = Math.min((totalPaidRevenue / maxFinance) * 100, 100);
   const expenseHeight = Math.min((totalExpenses / maxFinance) * 100, 100);
@@ -421,7 +429,6 @@ export default function App() {
   return (
     <div dir="rtl" className="min-h-screen bg-slate-50 flex flex-col print:bg-white font-sans">
       
-      {/* 🎬 ستايلات الأنيميشن */}
       <style>{`
         @keyframes slideUpFade {
           from { opacity: 0; transform: translateY(30px); }
@@ -498,13 +505,12 @@ export default function App() {
 
         <main className="flex-1 print:w-full print:m-0">
           
-          {/* 📊 الداشبورد المتحركة */}
           {activeTab === 'dashboard' && hasPermission('viewDashboard') && (
             <div className="space-y-6 print:hidden">
               
               <div className={`bg-gradient-to-l from-indigo-600 to-indigo-800 rounded-3xl p-8 text-white shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 transform transition-all duration-700 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
                 <div>
-                  <h2 className="text-2xl font-extrabold mb-2">مرحباً بك في حضانة الأمل ✨</h2>
+                  <h2 className="text-2xl font-extrabold mb-2">مرحباً بك أ. {currentUser?.name} ✨</h2>
                   <p className="text-indigo-200 text-sm">نظامك الإداري والمالي جاهز لمتابعة كل التفاصيل.</p>
                 </div>
                 {hasPermission('backupData') && (
@@ -520,7 +526,6 @@ export default function App() {
 
               {(hasPermission('viewAccounting') || hasPermission('viewFees')) ? (
                 <>
-                  {/* الكروت العلوية */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                     <div className={`bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 ${isMounted ? 'animate-slide-up opacity-0' : 'opacity-0'}`} style={{ animationDelay: '0.1s' }}>
                       <div className="flex justify-between items-center mb-2">
@@ -555,57 +560,37 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* الرسوم البيانية */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-                    
-                    {/* الرسم البياني المالي */}
                     <div className={`lg:col-span-2 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm ${isMounted ? 'animate-slide-up opacity-0' : 'opacity-0'}`} style={{ animationDelay: '0.5s' }}>
                       <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
                         <span className="w-2 h-6 bg-indigo-500 rounded-full inline-block"></span>
                         التحليل المالي
                       </h3>
                       <div className="h-64 flex items-end justify-around gap-4 pb-4 border-b border-slate-200">
-                        
-                        {/* بار الإيرادات */}
                         <div className="flex flex-col items-center w-1/4 group">
                           <span className="text-sm font-bold text-emerald-600 mb-2 opacity-0 group-hover:opacity-100 transition-opacity">{totalPaidRevenue}</span>
                           <div className="w-full bg-slate-100 rounded-t-xl relative h-48 flex items-end">
-                            <div 
-                              className={`w-full bg-emerald-500 rounded-t-xl transition-all duration-1000 ease-out ${isMounted ? 'animate-bar' : ''}`} 
-                              style={{ '--target-height': `${revenueHeight}%` }}>
-                            </div>
+                            <div className={`w-full bg-emerald-500 rounded-t-xl transition-all duration-1000 ease-out ${isMounted ? 'animate-bar' : ''}`} style={{ '--target-height': `${revenueHeight}%` }}></div>
                           </div>
                           <span className="text-xs font-bold text-slate-500 mt-2">الإيرادات</span>
                         </div>
-
-                        {/* بار المصروفات */}
                         <div className="flex flex-col items-center w-1/4 group">
                           <span className="text-sm font-bold text-rose-600 mb-2 opacity-0 group-hover:opacity-100 transition-opacity">{totalExpenses}</span>
                           <div className="w-full bg-slate-100 rounded-t-xl relative h-48 flex items-end">
-                            <div 
-                              className={`w-full bg-rose-500 rounded-t-xl transition-all duration-1000 ease-out ${isMounted ? 'animate-bar' : ''}`} 
-                              style={{ '--target-height': `${expenseHeight}%` }}>
-                            </div>
+                            <div className={`w-full bg-rose-500 rounded-t-xl transition-all duration-1000 ease-out ${isMounted ? 'animate-bar' : ''}`} style={{ '--target-height': `${expenseHeight}%` }}></div>
                           </div>
                           <span className="text-xs font-bold text-slate-500 mt-2">المصروفات</span>
                         </div>
-
-                        {/* بار صافي الربح */}
                         <div className="flex flex-col items-center w-1/4 group">
                           <span className="text-sm font-bold text-indigo-600 mb-2 opacity-0 group-hover:opacity-100 transition-opacity">{netIncome}</span>
                           <div className="w-full bg-slate-100 rounded-t-xl relative h-48 flex items-end">
-                            <div 
-                              className={`w-full ${netIncome >= 0 ? 'bg-indigo-500' : 'bg-rose-500'} rounded-t-xl transition-all duration-1000 ease-out ${isMounted ? 'animate-bar' : ''}`} 
-                              style={{ '--target-height': `${netHeight}%` }}>
-                            </div>
+                            <div className={`w-full ${netIncome >= 0 ? 'bg-indigo-500' : 'bg-rose-500'} rounded-t-xl transition-all duration-1000 ease-out ${isMounted ? 'animate-bar' : ''}`} style={{ '--target-height': `${netHeight}%` }}></div>
                           </div>
                           <span className="text-xs font-bold text-slate-500 mt-2">صافي الربح</span>
                         </div>
-
                       </div>
                     </div>
 
-                    {/* رسم بياني للحضور والغياب */}
                     <div className={`bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center ${isMounted ? 'animate-slide-up opacity-0' : 'opacity-0'}`} style={{ animationDelay: '0.6s' }}>
                        <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
                         <span className="w-2 h-6 bg-emerald-500 rounded-full inline-block"></span>
@@ -617,23 +602,12 @@ export default function App() {
                           <span className="text-xs font-bold text-slate-400 mt-1">حضور</span>
                         </div>
                       </div>
-                      
                       <div className="flex justify-around mt-8 text-sm">
-                        <div className="text-center">
-                          <span className="block text-emerald-600 font-bold text-lg">{presentCount}</span>
-                          <span className="text-slate-500 text-xs">حاضر</span>
-                        </div>
-                        <div className="text-center">
-                          <span className="block text-rose-600 font-bold text-lg">{absentCount}</span>
-                          <span className="text-slate-500 text-xs">غائب</span>
-                        </div>
-                        <div className="text-center">
-                          <span className="block text-slate-800 font-bold text-lg">{children.length}</span>
-                          <span className="text-slate-500 text-xs">إجمالي</span>
-                        </div>
+                        <div className="text-center"><span className="block text-emerald-600 font-bold text-lg">{presentCount}</span><span className="text-slate-500 text-xs">حاضر</span></div>
+                        <div className="text-center"><span className="block text-rose-600 font-bold text-lg">{absentCount}</span><span className="text-slate-500 text-xs">غائب</span></div>
+                        <div className="text-center"><span className="block text-slate-800 font-bold text-lg">{children.length}</span><span className="text-slate-500 text-xs">إجمالي</span></div>
                       </div>
                     </div>
-
                   </div>
                 </>
               ) : (
@@ -646,18 +620,13 @@ export default function App() {
             </div>
           )}
 
-          {/* 👶 صفحة الأطفال */}
           {activeTab === 'children' && hasPermission('viewChildren') && (
             <div className="space-y-6">
               <PrintHeader title="تقرير بيانات الأطفال والطلاب" />
-              
               <div className="flex justify-between items-center print:hidden">
                 <h2 className="text-xl font-bold text-slate-800">قائمة الأطفال</h2>
-                <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition">
-                  🖨️ طباعة تقرير الأطفال
-                </button>
+                <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition">🖨️ طباعة تقرير الأطفال</button>
               </div>
-
               {hasPermission('addChild') && (
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm print:hidden">
                   <h2 className="text-lg font-bold text-slate-800 mb-1">إضافة طفل جديد وتحديد القسط الشهري</h2>
@@ -671,7 +640,6 @@ export default function App() {
                   </form>
                 </div>
               )}
-
               <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:border-0 print:shadow-none">
                 <table className="w-full text-right border-collapse">
                   <thead>
@@ -680,12 +648,7 @@ export default function App() {
                       <th className="p-4 font-bold">تاريخ الدخول</th>
                       <th className="p-4 font-bold">رقم ولي الأمر</th>
                       {(hasPermission('viewFees') || hasPermission('viewAccounting')) && (
-                        <>
-                          <th className="p-4 font-bold">القسط الشهري</th>
-                          <th className="p-4 font-bold">إجمالي المستحق</th>
-                          <th className="p-4 font-bold">إجمالي المسدد</th>
-                          <th className="p-4 font-bold">المتبقي (الصافي)</th>
-                        </>
+                        <><th className="p-4 font-bold">القسط الشهري</th><th className="p-4 font-bold">إجمالي المستحق</th><th className="p-4 font-bold">إجمالي المسدد</th><th className="p-4 font-bold">المتبقي (الصافي)</th></>
                       )}
                       {hasPermission('deleteChild') && <th className="p-4 font-bold text-center print:hidden">إجراءات</th>}
                     </tr>
@@ -700,17 +663,10 @@ export default function App() {
                           <td className="p-4 text-xs text-slate-500">{child.joinDate || '-'}</td>
                           <td className="p-4 text-xs font-mono text-slate-600">{child.phone}</td>
                           {(hasPermission('viewFees') || hasPermission('viewAccounting')) && (
-                            <>
-                              <td className="p-4 font-bold text-slate-700">{child.monthlyFee}</td>
-                              <td className="p-4 font-bold text-indigo-600">{totalDue}</td>
-                              <td className="p-4 font-bold text-emerald-600">{child.paidFee || 0}</td>
-                              <td className="p-4 font-bold text-amber-600">{balance}</td>
-                            </>
+                            <><td className="p-4 font-bold text-slate-700">{child.monthlyFee}</td><td className="p-4 font-bold text-indigo-600">{totalDue}</td><td className="p-4 font-bold text-emerald-600">{child.paidFee || 0}</td><td className="p-4 font-bold text-amber-600">{balance}</td></>
                           )}
                           {hasPermission('deleteChild') && (
-                            <td className="p-4 text-center print:hidden">
-                              <button onClick={() => deleteChild(child.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl transition">🗑️</button>
-                            </td>
+                            <td className="p-4 text-center print:hidden"><button onClick={() => deleteChild(child.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl transition">🗑️</button></td>
                           )}
                         </tr>
                       );
@@ -721,18 +677,13 @@ export default function App() {
             </div>
           )}
 
-          {/* 💳 صفحة الرسوم */}
           {activeTab === 'fees' && hasPermission('viewFees') && (
             <div className="space-y-6">
               <PrintHeader title="تقرير تحصيل الرسوم والاستحقاقات" />
-              
               <div className="flex justify-between items-center print:hidden">
                 <h2 className="text-xl font-bold text-slate-800">تحصيل الرسوم وتسوية الحسابات</h2>
-                <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition">
-                  🖨️ طباعة تقرير الرسوم
-                </button>
+                <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition">🖨️ طباعة تقرير الرسوم</button>
               </div>
-
               <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:border-0 print:shadow-none">
                 <table className="w-full text-right border-collapse">
                   <thead>
@@ -755,23 +706,12 @@ export default function App() {
                           <td className="p-4 font-bold text-slate-700">{child.monthlyFee}</td>
                           <td className="p-4 font-bold text-indigo-600">{totalDue}</td>
                           <td className="p-4 font-bold text-emerald-600">{child.paidFee || 0}</td>
-                          <td className="p-4">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${balance <= 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                              {balance <= 0 ? 'مخالص ✔️' : `${balance} متبقي`}
-                            </span>
-                          </td>
+                          <td className="p-4"><span className={`px-2.5 py-1 rounded-full text-xs font-bold ${balance <= 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>{balance <= 0 ? 'مخالص ✔️' : `${balance} متبقي`}</span></td>
                           {hasPermission('collectFees') && (
                             <td className="p-4 text-center print:hidden">
                               {balance > 0 ? (
-                                <button onClick={() => {
-                                  const pay = prompt(`أدخل المبلغ المسدد للطفل ${child.name}:`);
-                                  if (pay) handlePaymentUpdate(child.id, pay);
-                                }} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition transform hover:scale-105">
-                                  تحصيل 💳
-                                </button>
-                              ) : (
-                                <span className="text-xs text-slate-400">لا يوجد</span>
-                              )}
+                                <button onClick={() => { const pay = prompt(`أدخل المبلغ المسدد للطفل ${child.name}:`); if (pay) handlePaymentUpdate(child.id, pay); }} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition transform hover:scale-105">تحصيل 💳</button>
+                              ) : (<span className="text-xs text-slate-400">لا يوجد</span>)}
                             </td>
                           )}
                         </tr>
@@ -783,133 +723,66 @@ export default function App() {
             </div>
           )}
 
-          {/* 📈 صفحة الحسابات */}
           {activeTab === 'accounting' && hasPermission('viewAccounting') && (
             <div className="space-y-6">
               <PrintHeader title="التقرير المالي (الإيرادات والمصروفات)" />
-              
               <div className="flex justify-between items-center print:hidden">
                 <h2 className="text-xl font-bold text-slate-800">الإيرادات والمصروفات</h2>
-                <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition">
-                  🖨️ طباعة التقرير المالي
-                </button>
+                <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition">🖨️ طباعة التقرير المالي</button>
               </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition print:border-slate-800 print:rounded-none">
-                  <span className="text-slate-400 text-xs font-semibold print:text-slate-800">إجمالي الإيرادات</span>
-                  <h3 className="text-2xl font-bold text-emerald-600 mt-1 print:text-black">{totalPaidRevenue}</h3>
-                </div>
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition print:border-slate-800 print:rounded-none">
-                  <span className="text-slate-400 text-xs font-semibold print:text-slate-800">إجمالي المصروفات</span>
-                  <h3 className="text-2xl font-bold text-rose-600 mt-1 print:text-black">{totalExpenses}</h3>
-                </div>
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition print:border-slate-800 print:rounded-none">
-                  <span className="text-slate-400 text-xs font-semibold print:text-slate-800">صافي الربح</span>
-                  <h3 className={`text-2xl font-bold mt-1 print:text-black ${netIncome >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>{netIncome}</h3>
-                </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition print:border-slate-800 print:rounded-none"><span className="text-slate-400 text-xs font-semibold print:text-slate-800">إجمالي الإيرادات</span><h3 className="text-2xl font-bold text-emerald-600 mt-1 print:text-black">{totalPaidRevenue}</h3></div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition print:border-slate-800 print:rounded-none"><span className="text-slate-400 text-xs font-semibold print:text-slate-800">إجمالي المصروفات</span><h3 className="text-2xl font-bold text-rose-600 mt-1 print:text-black">{totalExpenses}</h3></div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition print:border-slate-800 print:rounded-none"><span className="text-slate-400 text-xs font-semibold print:text-slate-800">صافي الربح</span><h3 className={`text-2xl font-bold mt-1 print:text-black ${netIncome >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>{netIncome}</h3></div>
               </div>
-
               <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:border-0 print:shadow-none mt-8">
                 <div className="p-4 bg-emerald-50 border-b border-slate-100 print:bg-transparent print:border-b-2 print:border-slate-800"><h4 className="font-bold text-emerald-800 text-sm print:text-black">سجل الإيرادات</h4></div>
                 <table className="w-full text-right border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-600 text-xs print:bg-white print:border-b print:border-slate-300">
-                      <th className="p-4 font-bold">التاريخ</th>
-                      <th className="p-4 font-bold">البيان</th>
-                      <th className="p-4 font-bold">المبلغ</th>
-                      <th className="p-4 font-bold text-center print:hidden">حذف</th>
-                    </tr>
-                  </thead>
+                  <thead><tr className="bg-slate-100 text-slate-600 text-xs print:bg-white print:border-b print:border-slate-300"><th className="p-4 font-bold">التاريخ</th><th className="p-4 font-bold">البيان</th><th className="p-4 font-bold">المبلغ</th><th className="p-4 font-bold text-center print:hidden">حذف</th></tr></thead>
                   <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                    {revenues.map(rev => (
-                      <tr key={rev.id} className="hover:bg-slate-50 transition print:border-b print:border-slate-200">
-                        <td className="p-4 text-xs font-mono">{rev.date}</td>
-                        <td className="p-4 font-semibold">{rev.title}</td>
-                        <td className="p-4 font-bold text-emerald-600 print:text-black">{rev.amount}</td>
-                        <td className="p-4 text-center print:hidden"><button onClick={() => deleteRevenue(rev.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl transition">🗑️</button></td>
-                      </tr>
-                    ))}
+                    {revenues.map(rev => (<tr key={rev.id} className="hover:bg-slate-50 transition print:border-b print:border-slate-200"><td className="p-4 text-xs font-mono">{rev.date}</td><td className="p-4 font-semibold">{rev.title}</td><td className="p-4 font-bold text-emerald-600 print:text-black">{rev.amount}</td><td className="p-4 text-center print:hidden"><button onClick={() => deleteRevenue(rev.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl transition">🗑️</button></td></tr>))}
                   </tbody>
                 </table>
               </div>
-
               {hasPermission('addExpense') && (
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm print:hidden mt-6">
                   <h3 className="text-lg font-bold text-slate-800 mb-3">تسجيل مصروف جديد</h3>
                   <form onSubmit={handleAddExpense} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <input type="text" value={newExpenseTitle} onChange={(e) => setNewExpenseTitle(e.target.value)} placeholder="بيان المصروف..." className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-rose-500 outline-none" required />
                     <input type="number" value={newExpenseAmount} onChange={(e) => setNewExpenseAmount(e.target.value)} placeholder="المبلغ..." className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-rose-500 outline-none" required />
-                    <select value={newExpenseCategory} onChange={(e) => setNewExpenseCategory(e.target.value)} className="px-4 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-rose-500 outline-none">
-                      <option value="أجور ورواتب">أجور ورواتب</option>
-                      <option value="إيجار ومرافق">إيجار ومرافق</option>
-                      <option value="مستلزمات تعليمية">مستلزمات تعليمية</option>
-                      <option value="صيانة وتشغيل">صيانة وتشغيل</option>
-                    </select>
+                    <select value={newExpenseCategory} onChange={(e) => setNewExpenseCategory(e.target.value)} className="px-4 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-rose-500 outline-none"><option value="أجور ورواتب">أجور ورواتب</option><option value="إيجار ومرافق">إيجار ومرافق</option><option value="مستلزمات تعليمية">مستلزمات تعليمية</option><option value="صيانة وتشغيل">صيانة وتشغيل</option></select>
                     <button type="submit" className="bg-rose-600 hover:bg-rose-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition transform active:scale-95">إضافة مصروف ➕</button>
                   </form>
                 </div>
               )}
-
               <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:border-0 print:shadow-none mt-8">
                 <div className="p-4 bg-rose-50 border-b border-slate-100 print:bg-transparent print:border-b-2 print:border-slate-800"><h4 className="font-bold text-rose-800 text-sm print:text-black">سجل المصروفات</h4></div>
                 <table className="w-full text-right border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-600 text-xs print:bg-white print:border-b print:border-slate-300">
-                      <th className="p-4 font-bold">التاريخ</th>
-                      <th className="p-4 font-bold">البيان</th>
-                      <th className="p-4 font-bold">التصنيف</th>
-                      <th className="p-4 font-bold">المبلغ</th>
-                      <th className="p-4 font-bold text-center print:hidden">حذف</th>
-                    </tr>
-                  </thead>
+                  <thead><tr className="bg-slate-100 text-slate-600 text-xs print:bg-white print:border-b print:border-slate-300"><th className="p-4 font-bold">التاريخ</th><th className="p-4 font-bold">البيان</th><th className="p-4 font-bold">التصنيف</th><th className="p-4 font-bold">المبلغ</th><th className="p-4 font-bold text-center print:hidden">حذف</th></tr></thead>
                   <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                    {expenses.map(exp => (
-                      <tr key={exp.id} className="hover:bg-slate-50 transition print:border-b print:border-slate-200">
-                        <td className="p-4 text-xs font-mono">{exp.date}</td>
-                        <td className="p-4 font-semibold">{exp.title}</td>
-                        <td className="p-4 text-xs">{exp.category}</td>
-                        <td className="p-4 font-bold text-rose-600 print:text-black">{exp.amount}</td>
-                        <td className="p-4 text-center print:hidden"><button onClick={() => deleteExpense(exp.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl transition">🗑️</button></td>
-                      </tr>
-                    ))}
+                    {expenses.map(exp => (<tr key={exp.id} className="hover:bg-slate-50 transition print:border-b print:border-slate-200"><td className="p-4 text-xs font-mono">{exp.date}</td><td className="p-4 font-semibold">{exp.title}</td><td className="p-4 text-xs">{exp.category}</td><td className="p-4 font-bold text-rose-600 print:text-black">{exp.amount}</td><td className="p-4 text-center print:hidden"><button onClick={() => deleteExpense(exp.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl transition">🗑️</button></td></tr>))}
                   </tbody>
                 </table>
               </div>
             </div>
           )}
 
-          {/* 📋 صفحة الحضور */}
           {activeTab === 'attendance' && hasPermission('manageAttendance') && (
             <div className="space-y-6">
               <PrintHeader title="تقرير الحضور والغياب اليومي" />
-              
               <div className="flex justify-between items-center print:hidden">
                 <h2 className="text-xl font-bold text-slate-800">سجل الحضور والغياب</h2>
-                <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition">
-                  🖨️ طباعة تقرير اليوم
-                </button>
+                <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition">🖨️ طباعة تقرير اليوم</button>
               </div>
-
               <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:border-0 print:shadow-none">
                 <table className="w-full text-right border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-600 text-xs print:bg-white print:border-b-2 print:border-slate-800">
-                      <th className="p-4 font-bold">اسم الطفل</th>
-                      <th className="p-4 font-bold">الفصل</th>
-                      <th className="p-4 font-bold">الحالة</th>
-                      <th className="p-4 font-bold">وقت الحضور</th>
-                      <th className="p-4 font-bold text-center print:hidden">التحكم بالحالة</th>
-                    </tr>
-                  </thead>
+                  <thead><tr className="bg-slate-100 text-slate-600 text-xs print:bg-white print:border-b-2 print:border-slate-800"><th className="p-4 font-bold">اسم الطفل</th><th className="p-4 font-bold">الفصل</th><th className="p-4 font-bold">الحالة</th><th className="p-4 font-bold">وقت الحضور</th><th className="p-4 font-bold text-center print:hidden">التحكم بالحالة</th></tr></thead>
                   <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
                     {children.map(child => (
                       <tr key={child.id} className="hover:bg-slate-50 transition print:border-b print:border-slate-200">
                         <td className="p-4 font-semibold text-slate-800">{child.name}</td>
                         <td className="p-4 text-xs text-slate-600">{child.classroom}</td>
-                        <td className={`p-4 font-bold ${child.status === 'present' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {child.status === 'present' ? 'حاضر ✔️' : 'غائب ✖️'}
-                        </td>
+                        <td className={`p-4 font-bold ${child.status === 'present' ? 'text-emerald-600' : 'text-rose-600'}`}>{child.status === 'present' ? 'حاضر ✔️' : 'غائب ✖️'}</td>
                         <td className="p-4 text-xs text-slate-500">{child.checkIn}</td>
                         <td className="p-4 text-center space-x-2 space-x-reverse print:hidden">
                           <button onClick={() => handleStatusChange(child.id, 'present')} className={`px-3 py-1 rounded-xl text-xs font-bold transition transform hover:scale-105 ${child.status === 'present' ? 'bg-emerald-500 text-white shadow-md' : 'bg-slate-100 text-slate-600'}`}>حاضر ✔️</button>
@@ -923,17 +796,17 @@ export default function App() {
             </div>
           )}
 
-          {/* 📄 صفحة التقارير الشاملة */}
           {activeTab === 'reports' && hasPermission('viewReports') && (
             <div className="space-y-6">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center print:hidden gap-4">
                 <div>
                   <h2 className="text-xl font-bold text-slate-800">التقارير الشاملة</h2>
-                  <p className="text-sm text-slate-500 mt-1">يمكنك فلترة تقرير الحضور بالتاريخ والطالب.</p>
+                  <p className="text-sm text-slate-500 mt-1">فلتر بالفترة (تأثر على الحضور والإيرادات والمصروفات).</p>
                 </div>
-                <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition flex items-center gap-2 transform hover:scale-105">
-                  🖨️ طباعة / تصدير PDF
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={() => { setReportFromDate(''); setReportToDate(''); setReportChildId('all'); }} className="bg-slate-500 hover:bg-slate-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md transition transform hover:scale-105">🔄 إعادة تعيين</button>
+                  <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition flex items-center gap-2 transform hover:scale-105">🖨️ طباعة / تصدير PDF</button>
+                </div>
               </div>
 
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm print:hidden flex flex-wrap gap-4 items-end">
@@ -949,22 +822,74 @@ export default function App() {
                   <label className="text-xs font-bold text-slate-600">الطالب</label>
                   <select value={reportChildId} onChange={(e) => setReportChildId(e.target.value)} className="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none min-w-[150px]">
                     <option value="all">كل الطلاب</option>
-                    {children.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
+                    {children.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
                   </select>
                 </div>
               </div>
 
               <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm print:border-0 print:shadow-none print:p-0">
+                
                 <div className="text-center mb-8 border-b-2 border-slate-800 pb-4">
                   <h1 className="text-2xl font-bold text-slate-900">حضانة الأمل الخاصة ثنائية اللغة</h1>
-                  <p className="text-slate-600 mt-1">تقرير إداري ومالي شامل</p>
-                  <p className="text-sm text-slate-500 mt-1">تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
+                  <p className="text-slate-600 mt-1 font-semibold">تقرير إداري ومالي شامل</p>
+                  <div className="mt-2 text-sm text-slate-700 space-y-1">
+                    <p className="font-bold text-indigo-700">
+                      الفترة: {reportFromDate || reportToDate ? `من ${reportFromDate || 'البداية'} إلى ${reportToDate || 'الآن'}` : 'كل الفترات'}
+                    </p>
+                    {reportChildId !== 'all' && (
+                      <p className="font-bold text-indigo-700">الطالب: {children.find(c => c.id === Number(reportChildId))?.name}</p>
+                    )}
+                    <p className="text-slate-500">تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
+                  </div>
                 </div>
 
                 <div className="mb-10">
-                  <h2 className="text-lg font-bold text-indigo-900 bg-indigo-50 p-2 rounded-lg mb-4 print:bg-transparent print:border-b">1. تقرير الحضور والغياب</h2>
+                  <h2 className="text-lg font-bold text-indigo-900 bg-indigo-50 p-2 rounded-lg mb-4 print:bg-transparent print:border-b">1. التقرير المالي للفترة المحددة</h2>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                    <div className="border border-emerald-300 bg-emerald-50 p-3 rounded-xl text-center print:bg-transparent">
+                      <span className="block text-sm text-emerald-700 font-bold">الإيرادات المحصلة</span>
+                      <span className="block text-xl font-bold text-emerald-800">{filteredTotalRevenue} ج.م</span>
+                    </div>
+                    <div className="border border-rose-300 bg-rose-50 p-3 rounded-xl text-center print:bg-transparent">
+                      <span className="block text-sm text-rose-700 font-bold">المصروفات</span>
+                      <span className="block text-xl font-bold text-rose-800">{filteredTotalExpenses} ج.م</span>
+                    </div>
+                    <div className="border border-indigo-300 bg-indigo-50 p-3 rounded-xl text-center print:bg-transparent">
+                      <span className="block text-sm text-indigo-700 font-bold">صافي الربح</span>
+                      <span className={`block text-xl font-bold ${filteredNetIncome >= 0 ? 'text-indigo-800' : 'text-rose-800'}`}>{filteredNetIncome} ج.م</span>
+                    </div>
+                  </div>
+
+                  {filteredExpenses.length > 0 && (
+                    <>
+                      <h3 className="font-bold text-slate-800 mb-2 text-sm">تفاصيل المصروفات في الفترة:</h3>
+                      <table className="w-full text-right border-collapse border border-slate-300">
+                        <thead>
+                          <tr className="bg-slate-100 text-slate-700 text-sm">
+                            <th className="p-2 border border-slate-300">التاريخ</th>
+                            <th className="p-2 border border-slate-300">البيان</th>
+                            <th className="p-2 border border-slate-300">التصنيف</th>
+                            <th className="p-2 border border-slate-300">المبلغ</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-sm text-slate-800">
+                          {filteredExpenses.map(exp => (
+                            <tr key={exp.id}>
+                              <td className="p-2 border border-slate-300">{exp.date}</td>
+                              <td className="p-2 border border-slate-300">{exp.title}</td>
+                              <td className="p-2 border border-slate-300">{exp.category}</td>
+                              <td className="p-2 border border-slate-300 font-bold">{exp.amount} ج.م</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </>
+                  )}
+                </div>
+
+                <div>
+                  <h2 className="text-lg font-bold text-indigo-900 bg-indigo-50 p-2 rounded-lg mb-4 print:bg-transparent print:border-b">2. تقرير الحضور والغياب للفترة المحددة</h2>
                   
                   <table className="w-full text-right border-collapse border border-slate-300">
                     <thead>
@@ -997,53 +922,6 @@ export default function App() {
                     </tbody>
                   </table>
                 </div>
-
-                <div>
-                  <h2 className="text-lg font-bold text-indigo-900 bg-indigo-50 p-2 rounded-lg mb-4 print:bg-transparent print:border-b">2. التقرير المالي والموقف العام</h2>
-                  
-                  <table className="w-full text-right border-collapse border border-slate-300 mb-6">
-                    <tbody className="text-sm text-slate-800">
-                      <tr>
-                        <td className="p-3 border border-slate-300 font-bold bg-slate-50 w-1/2">إجمالي الإيرادات المحصلة</td>
-                        <td className="p-3 border border-slate-300 text-emerald-700 font-bold">{totalPaidRevenue} ج.م</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 border border-slate-300 font-bold bg-slate-50">إجمالي المصروفات التشغيلية</td>
-                        <td className="p-3 border border-slate-300 text-rose-700 font-bold">{totalExpenses} ج.م</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 border border-slate-300 font-bold bg-slate-50">صافي الربح التشغيلي</td>
-                        <td className={`p-3 border border-slate-300 font-bold ${netIncome >= 0 ? 'text-indigo-700' : 'text-rose-700'}`}>{netIncome} ج.م</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 border border-slate-300 font-bold bg-slate-50">إجمالي الذمم (المتأخرات المالية)</td>
-                        <td className="p-3 border border-slate-300 text-amber-700 font-bold">{totalReceivableBalance} ج.م</td>
-                      </tr>
-                    </tbody>
-                  </table>
-
-                  <h3 className="font-bold text-slate-800 mb-2">تفاصيل المصروفات:</h3>
-                  <table className="w-full text-right border-collapse border border-slate-300">
-                    <thead>
-                      <tr className="bg-slate-100 text-slate-700 text-sm">
-                        <th className="p-2 border border-slate-300">التاريخ</th>
-                        <th className="p-2 border border-slate-300">البيان</th>
-                        <th className="p-2 border border-slate-300">التصنيف</th>
-                        <th className="p-2 border border-slate-300">المبلغ</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-sm text-slate-800">
-                      {expenses.map(exp => (
-                        <tr key={exp.id}>
-                          <td className="p-2 border border-slate-300">{exp.date}</td>
-                          <td className="p-2 border border-slate-300">{exp.title}</td>
-                          <td className="p-2 border border-slate-300">{exp.category}</td>
-                          <td className="p-2 border border-slate-300 font-bold">{exp.amount} ج.م</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
                 
                 <div className="mt-12 pt-8 border-t border-slate-300 flex justify-between text-sm text-slate-500 print:mt-20">
                   <div>توقيع المدير: ..................................</div>
@@ -1069,10 +947,7 @@ export default function App() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {classrooms.map(cls => (
                   <div key={cls.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex justify-between items-center hover:shadow-md transition">
-                    <div>
-                      <h3 className="font-bold text-slate-800 text-lg">{cls.name}</h3>
-                      <p className="text-slate-400 text-xs mt-1">المشرفة: {cls.supervisor}</p>
-                    </div>
+                    <div><h3 className="font-bold text-slate-800 text-lg">{cls.name}</h3><p className="text-slate-400 text-xs mt-1">المشرفة: {cls.supervisor}</p></div>
                     {hasPermission('manageUsers') && <button onClick={() => deleteClassroom(cls.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl transition">🗑️ حذف</button>}
                   </div>
                 ))}
@@ -1087,20 +962,14 @@ export default function App() {
                 <form onSubmit={handleAddVideo} className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-4">
                   <input type="text" value={newVideoTitle} onChange={(e) => setNewVideoTitle(e.target.value)} placeholder="عنوان الفيديو..." className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
                   <input type="url" value={newVideoUrl} onChange={(e) => setNewVideoUrl(e.target.value)} placeholder="رابط الفيديو..." className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
-                  <select value={newVideoCategory} onChange={(e) => setNewVideoCategory(e.target.value)} className="px-4 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
-                    <option value="تعليمي">تعليمي</option>
-                    <option value="ترفيهي">ترفيهي</option>
-                  </select>
+                  <select value={newVideoCategory} onChange={(e) => setNewVideoCategory(e.target.value)} className="px-4 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"><option value="تعليمي">تعليمي</option><option value="ترفيهي">ترفيهي</option></select>
                   <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition transform active:scale-95">إضافة فيديو ➕</button>
                 </form>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {videos.map(vid => (
                   <div key={vid.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex justify-between items-center hover:shadow-md transition">
-                    <div>
-                      <h3 className="font-bold text-slate-800 text-base mb-2">{vid.title}</h3>
-                      <a href={vid.url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 font-semibold hover:underline">مشاهدة الفيديو 🎥</a>
-                    </div>
+                    <div><h3 className="font-bold text-slate-800 text-base mb-2">{vid.title}</h3><a href={vid.url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 font-semibold hover:underline">مشاهدة الفيديو 🎥</a></div>
                     <button onClick={() => deleteVideo(vid.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl transition">🗑️ حذف</button>
                   </div>
                 ))}
@@ -1114,10 +983,7 @@ export default function App() {
                 <h2 className="text-xl font-bold text-slate-800">جدول الأنشطة اليومية</h2>
                 <form onSubmit={handleAddActivity} className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <input type="text" value={newActivityTitle} onChange={(e) => setNewActivityTitle(e.target.value)} placeholder="عنوان النشاط..." className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
-                  <select value={newActivityCategory} onChange={(e) => setNewActivityCategory(e.target.value)} className="px-4 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
-                    <option value="إنجاز">إنجاز</option>
-                    <option value="وجبات">وجبات</option>
-                  </select>
+                  <select value={newActivityCategory} onChange={(e) => setNewActivityCategory(e.target.value)} className="px-4 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"><option value="إنجاز">إنجاز</option><option value="وجبات">وجبات</option></select>
                   <input type="text" value={newActivityTime} onChange={(e) => setNewActivityTime(e.target.value)} placeholder="الوقت..." className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
                   <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition transform active:scale-95">إضافة نشاط ➕</button>
                 </form>
@@ -1125,10 +991,7 @@ export default function App() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {activities.map(act => (
                   <div key={act.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center hover:shadow-md transition">
-                    <div>
-                      <h3 className="font-bold text-slate-800 text-base mb-1">{act.title}</h3>
-                      <p className="text-slate-400 text-xs">الوقت: {act.time}</p>
-                    </div>
+                    <div><h3 className="font-bold text-slate-800 text-base mb-1">{act.title}</h3><p className="text-slate-400 text-xs">الوقت: {act.time}</p></div>
                     <button onClick={() => deleteActivity(act.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl transition">🗑️ حذف</button>
                   </div>
                 ))}
@@ -1140,65 +1003,37 @@ export default function App() {
             <div className="space-y-6 print:hidden">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                 <h2 className="text-xl font-bold text-slate-800 mb-4">إدارة الصلاحيات الشخصية (لكل مستخدم)</h2>
-                
                 <div className="flex flex-col md:flex-row gap-6">
                   <div className="w-full md:w-1/3 border-l border-slate-100 pl-4">
                     <h3 className="font-bold text-slate-700 mb-3 text-sm">اختر المستخدم:</h3>
                     <div className="space-y-2">
                       {users.map(u => (
-                        <button
-                          key={u.id}
-                          onClick={() => setSelectedUserId(u.id)}
-                          className={`w-full text-right px-4 py-3 rounded-xl text-sm font-semibold transition border ${selectedUserId === u.id ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                        >
-                          <div className="flex justify-between items-center">
-                            <span>{u.name}</span>
-                            <span className="text-xs bg-slate-100 px-2 py-1 rounded-md">{u.roleLabel}</span>
-                          </div>
+                        <button key={u.id} onClick={() => setSelectedUserId(u.id)} className={`w-full text-right px-4 py-3 rounded-xl text-sm font-semibold transition border ${selectedUserId === u.id ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                          <div className="flex justify-between items-center"><span>{u.name}</span><span className="text-xs bg-slate-100 px-2 py-1 rounded-md">{u.roleLabel}</span></div>
                           <span className="text-xs text-slate-400 font-normal">اسم المستخدم: {u.username}</span>
                         </button>
                       ))}
                     </div>
                   </div>
-
                   <div className="w-full md:w-2/3">
                     {selectedUserId ? (
                       <>
                         <div className="mb-4 flex items-center gap-2">
-                          <h3 className="font-bold text-slate-800 text-lg">
-                            صلاحيات: {users.find(u => u.id === selectedUserId)?.name}
-                          </h3>
-                          {users.find(u => u.id === selectedUserId)?.username === 'admin' && (
-                            <span className="text-xs bg-rose-100 text-rose-600 px-2 py-1 rounded-md font-bold">حساب أساسي (غير قابل للتعديل)</span>
-                          )}
+                          <h3 className="font-bold text-slate-800 text-lg">صلاحيات: {users.find(u => u.id === selectedUserId)?.name}</h3>
+                          {users.find(u => u.id === selectedUserId)?.username === 'admin' && (<span className="text-xs bg-rose-100 text-rose-600 px-2 py-1 rounded-md font-bold">حساب أساسي (غير قابل للتعديل)</span>)}
                         </div>
-                        
                         <div className="overflow-x-auto border border-slate-200 rounded-xl">
                           <table className="w-full text-right border-collapse">
-                            <thead>
-                              <tr className="bg-slate-50 text-slate-700 text-sm">
-                                <th className="p-3 font-bold border-b">الصلاحية</th>
-                                <th className="p-3 font-bold border-b text-center w-24">السماح</th>
-                              </tr>
-                            </thead>
+                            <thead><tr className="bg-slate-50 text-slate-700 text-sm"><th className="p-3 font-bold border-b">الصلاحية</th><th className="p-3 font-bold border-b text-center w-24">السماح</th></tr></thead>
                             <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
                               {PERMISSION_LIST.map(perm => {
                                 const user = users.find(u => u.id === selectedUserId);
                                 const isAdmin = user?.username === 'admin';
                                 const isAllowed = isAdmin ? true : (userPermissions[selectedUserId]?.[perm.key] ?? DEFAULT_ROLE_PERMISSIONS[user?.role]?.[perm.key] ?? false);
-                                
                                 return (
                                   <tr key={perm.key} className="hover:bg-slate-50 transition">
                                     <td className="p-3 font-semibold">{perm.label}</td>
-                                    <td className="p-3 text-center">
-                                      <input 
-                                        type="checkbox" 
-                                        checked={isAllowed} 
-                                        onChange={() => toggleUserPermission(selectedUserId, perm.key)} 
-                                        disabled={isAdmin}
-                                        className={`w-5 h-5 accent-indigo-600 ${isAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer transform hover:scale-110 transition'}`} 
-                                      />
-                                    </td>
+                                    <td className="p-3 text-center"><input type="checkbox" checked={isAllowed} onChange={() => toggleUserPermission(selectedUserId, perm.key)} disabled={isAdmin} className={`w-5 h-5 accent-indigo-600 ${isAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer transform hover:scale-110 transition'}`} /></td>
                                   </tr>
                                 );
                               })}
@@ -1206,15 +1041,10 @@ export default function App() {
                           </table>
                         </div>
                       </>
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-slate-400 font-semibold min-h-[200px]">
-                        👈 اختر مستخدم من القائمة لعرض وتعديل صلاحياته
-                      </div>
-                    )}
+                    ) : (<div className="flex items-center justify-center h-full text-slate-400 font-semibold min-h-[200px]">👈 اختر مستخدم من القائمة لعرض وتعديل صلاحياته</div>)}
                   </div>
                 </div>
               </div>
-
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm mt-6">
                 <h3 className="text-lg font-bold text-slate-800 mb-3">إضافة مستخدم جديد</h3>
                 <form onSubmit={handleAddUser} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -1222,30 +1052,20 @@ export default function App() {
                   <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="اسم المستخدم..." className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
                   <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="كلمة المرور..." className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
                   <div className="flex gap-2">
-                    <select value={newRole} onChange={(e) => setNewRole(e.target.value)} className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
-                      <option value="admin">مدير النظام</option>
-                      <option value="teacher">معلمة</option>
-                      <option value="accountant">محاسب</option>
-                    </select>
+                    <select value={newRole} onChange={(e) => setNewRole(e.target.value)} className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none"><option value="admin">مدير النظام</option><option value="teacher">معلمة</option><option value="accountant">محاسب</option></select>
                     <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition transform active:scale-95">إضافة ➕</button>
                   </div>
                 </form>
               </div>
-
               <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 mt-6">
                 <h3 className="font-bold text-slate-800 text-base mb-4">قائمة مستخدمي النظام</h3>
                 <div className="space-y-2">
                   {users.map(u => (
                     <div key={u.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-2xl border border-slate-100 hover:shadow-sm transition">
-                      <div>
-                        <span className="font-bold text-slate-800 text-sm block">{u.name}</span>
-                        <span className="text-xs text-slate-400">اسم المستخدم: {u.username}</span>
-                      </div>
+                      <div><span className="font-bold text-slate-800 text-sm block">{u.name}</span><span className="text-xs text-slate-400">اسم المستخدم: {u.username}</span></div>
                       <div className="flex items-center gap-3">
                         <span className="bg-indigo-100 text-indigo-700 text-xs px-3 py-1 rounded-full font-bold">{u.roleLabel}</span>
-                        {u.username !== 'admin' && (
-                          <button onClick={() => deleteUser(u.id)} className="text-rose-600 hover:bg-rose-50 p-1.5 rounded-xl transition">🗑️ حذف</button>
-                        )}
+                        {u.username !== 'admin' && (<button onClick={() => deleteUser(u.id)} className="text-rose-600 hover:bg-rose-50 p-1.5 rounded-xl transition">🗑️ حذف</button>)}
                       </div>
                     </div>
                   ))}
