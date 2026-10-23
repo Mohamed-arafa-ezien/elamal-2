@@ -9,8 +9,8 @@ import {
   LogOut, 
   LayoutDashboard,
   Smile,
-  Phone,
-  Cake,
+  Video,
+  School,
   Trash2
 } from 'lucide-react';
 
@@ -35,7 +35,7 @@ export default function NurseryManagementSystem() {
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState('teacher');
 
-  // 2. إدارة الأطفال والطلاب (يشمل تاريخ الميلاد ورقم ولي الأمر)
+  // 2. إدارة الأطفال والطلاب (تاريخ الميلاد ورقم ولي الأمر والفصل)
   const [children, setChildren] = useState(() => {
     const saved = localStorage.getItem('nursery_children');
     return saved ? JSON.parse(saved) : [
@@ -49,7 +49,31 @@ export default function NurseryManagementSystem() {
   const [newChildPhone, setNewChildPhone] = useState('');
   const [newChildClassroom, setNewChildClassroom] = useState('فصل الزهور');
 
-  // 3. الأنشطة اليومية
+  // 3. إدارة الفصول الدراسية (جديد)
+  const [classrooms, setClassrooms] = useState(() => {
+    const saved = localStorage.getItem('nursery_classrooms');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, name: "فصل البراعم", supervisor: "أستاذة فاطمة", ageGroup: "سنة إلى سنتين" },
+      { id: 2, name: "فصل الزهور", supervisor: "أستاذة سارة", ageGroup: "سنتان إلى 3 سنوات" }
+    ];
+  });
+  const [newClassroomName, setNewClassroomName] = useState('');
+  const [newClassroomSupervisor, setNewClassroomSupervisor] = useState('');
+  const [newClassroomAge, setNewClassroomAge] = useState('');
+
+  // 4. الفيديوهات التعليمية (جديد)
+  const [videos, setVideos] = useState(() => {
+    const saved = localStorage.getItem('nursery_videos');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, title: "تعليم الحروف العربية للأطفال مع الأنشطة", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", category: "تعليمي" },
+      { id: 2, title: "أناشيد الحضانة الترفيهية والأرقام", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", category: "ترفيهي" }
+    ];
+  });
+  const [newVideoTitle, setNewVideoTitle] = useState('');
+  const [newVideoUrl, setNewVideoUrl] = useState('');
+  const [newVideoCategory, setNewVideoCategory] = useState('تعليمي');
+
+  // 5. الأنشطة اليومية
   const [activities, setActivities] = useState(() => {
     const saved = localStorage.getItem('nursery_activities');
     return saved ? JSON.parse(saved) : [
@@ -65,6 +89,8 @@ export default function NurseryManagementSystem() {
   // الحفظ التلقائي في LocalStorage
   useEffect(() => { localStorage.setItem('nursery_users', JSON.stringify(users)); }, [users]);
   useEffect(() => { localStorage.setItem('nursery_children', JSON.stringify(children)); }, [children]);
+  useEffect(() => { localStorage.setItem('nursery_classrooms', JSON.stringify(classrooms)); }, [classrooms]);
+  useEffect(() => { localStorage.setItem('nursery_videos', JSON.stringify(videos)); }, [videos]);
   useEffect(() => { localStorage.setItem('nursery_activities', JSON.stringify(activities)); }, [activities]);
 
   // تسجيل الدخول
@@ -80,7 +106,7 @@ export default function NurseryManagementSystem() {
     }
   };
 
-  // إضافة طفل جديد (بدون ريفرش للصفحة مع حفظ البيانات)
+  // إضافة طفل جديد
   const handleAddChild = (e) => {
     e.preventDefault();
     if (!newChildName.trim() || !newChildDob.trim() || !newChildPhone.trim()) {
@@ -104,7 +130,46 @@ export default function NurseryManagementSystem() {
     alert('تم إضافة الطفل بنجاح!');
   };
 
-  // إضافة مستخدم جديد (إدارة الصلاحيات)
+  // إضافة فصل دراسي جديد (جديد)
+  const handleAddClassroom = (e) => {
+    e.preventDefault();
+    if (!newClassroomName.trim()) {
+      alert('الرجاء إدخال اسم الفصل!');
+      return;
+    }
+    const newClass = {
+      id: Date.now(),
+      name: newClassroomName,
+      supervisor: newClassroomSupervisor || 'غير محدد',
+      ageGroup: newClassroomAge || 'عام'
+    };
+    setClassrooms([...classrooms, newClass]);
+    setNewClassroomName('');
+    setNewClassroomSupervisor('');
+    setNewClassroomAge('');
+    alert('تم إضافة الفصل بنجاح!');
+  };
+
+  // إضافة فيديو تعليمي جديد (جديد)
+  const handleAddVideo = (e) => {
+    e.preventDefault();
+    if (!newVideoTitle.trim() || !newVideoUrl.trim()) {
+      alert('الرجاء إدخال عنوان الفيديو ورابط العرض!');
+      return;
+    }
+    const newVid = {
+      id: Date.now(),
+      title: newVideoTitle,
+      url: newVideoUrl,
+      category: newVideoCategory
+    };
+    setVideos([...videos, newVid]);
+    setNewVideoTitle('');
+    setNewVideoUrl('');
+    alert('تم إضافة الفيديو التعليمي بنجاح!');
+  };
+
+  // إضافة مستخدم جديد
   const handleAddUser = (e) => {
     e.preventDefault();
     if (!newUsername.trim() || !newPassword.trim() || !newName.trim()) {
@@ -206,10 +271,9 @@ export default function NurseryManagementSystem() {
     );
   }
 
-  // الشاشة الرئيسية المطابقة لتصميم الواجهة المرفقة
+  // الشاشة الرئيسية
   return (
     <div dir="rtl" className="min-h-screen bg-slate-50 flex flex-col">
-      {/* شريط العنوان العلوي */}
       <header className="bg-indigo-700 text-white px-6 py-4 flex justify-between items-center shadow-md">
         <div className="flex items-center gap-3">
           <div className="bg-yellow-400 text-indigo-900 p-2 rounded-2xl">
@@ -217,7 +281,7 @@ export default function NurseryManagementSystem() {
           </div>
           <div>
             <h1 className="text-lg font-bold">حضانة الأمل الخاصة ثنائية اللغة - بصنبو</h1>
-            <p className="text-xs text-indigo-200">نظام الإدارة وإدارة الصلاحيات</p>
+            <p className="text-xs text-indigo-200">نظام الإدارة وإدارة الصلاحيات والفصول التعليمية</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -235,7 +299,7 @@ export default function NurseryManagementSystem() {
       </header>
 
       <div className="flex-1 flex flex-col md:flex-row p-6 gap-6">
-        {/* القائمة الجانبية المطابقة للصورة */}
+        {/* القائمة الجانبية */}
         <aside className="w-full md:w-64 bg-white rounded-3xl p-4 border border-slate-200 shadow-sm h-fit">
           <nav className="space-y-1">
             <button
@@ -249,6 +313,12 @@ export default function NurseryManagementSystem() {
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'children' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}
             >
               <Users className="w-5 h-5" /> الأطفال والطلاب
+            </button>
+            <button
+              onClick={() => setActiveTab('classrooms')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'classrooms' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}
+            >
+              <School className="w-5 h-5" /> الفصول الدراسية
             </button>
             <button
               onClick={() => setActiveTab('attendance')}
@@ -268,6 +338,12 @@ export default function NurseryManagementSystem() {
             >
               <Calendar className="w-5 h-5" /> الأنشطة اليومية
             </button>
+            <button
+              onClick={() => setActiveTab('videos')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'videos' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'}`}
+            >
+              <Video className="w-5 h-5" /> الفيديوهات التعليمية
+            </button>
             {currentUser?.role === 'admin' && (
               <button
                 onClick={() => setActiveTab('permissions')}
@@ -281,100 +357,165 @@ export default function NurseryManagementSystem() {
 
         {/* المحتوى الرئيسي */}
         <main className="flex-1">
-          {/* 1. لوحة التحكم */}
+          {/* لوحة التحكم */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
               <div className="bg-indigo-600 rounded-3xl p-6 text-white shadow-md">
                 <h2 className="text-xl font-bold mb-1">مرحباً بك في لوحة تحكم حضانة الأمل ✨</h2>
-                <p className="text-indigo-100 text-xs">إدارة ومتابعة شؤون الحضانة والأنشطة والصلاحيات بكل سهولة.</p>
+                <p className="text-indigo-100 text-xs">إدارة ومتابعة شؤون الحضانة، الفصول، الفيديوهات والأنشطة بكل سهولة.</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <span className="text-slate-400 text-xs font-semibold">إجمالي الطلاب</span>
                   <h3 className="text-2xl font-bold text-slate-800 mt-1">{children.length}</h3>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                  <span className="text-slate-400 text-xs font-semibold">الحاضرون اليوم</span>
-                  <h3 className="text-2xl font-bold text-emerald-600 mt-1">{children.filter(c => c.status === 'present').length}</h3>
+                  <span className="text-slate-400 text-xs font-semibold">الفصول الدراسية</span>
+                  <h3 className="text-2xl font-bold text-indigo-600 mt-1">{classrooms.length}</h3>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                  <span className="text-slate-400 text-xs font-semibold">الأنشطة اليومية</span>
-                  <h3 className="text-2xl font-bold text-indigo-600 mt-1">{activities.length}</h3>
+                  <span className="text-slate-400 text-xs font-semibold">الفيديوهات التعليمية</span>
+                  <h3 className="text-2xl font-bold text-purple-600 mt-1">{videos.length}</h3>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                  <span className="text-slate-400 text-xs font-semibold">الحاضرون اليوم</span>
+                  <h3 className="text-2xl font-bold text-emerald-600 mt-1">{children.filter(c => c.status === 'present').length}</h3>
                 </div>
               </div>
             </div>
           )}
 
-          {/* 2. الأنشطة اليومية (مثل الشاشة الموجودة في صورتك تماماً) */}
-          {activeTab === 'activities' && (
+          {/* 1. الفصول الدراسية (جديد) */}
+          {activeTab === 'classrooms' && (
             <div className="space-y-6">
-              <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-800">جدول الأنشطة اليومية</h2>
-                  <p className="text-slate-400 text-xs">عرض وإضافة الأنشطة الخاصة بالأطفال والفصول</p>
-                </div>
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h2 className="text-xl font-bold text-slate-800 mb-1">إدارة الفصول الدراسية</h2>
+                <p className="text-slate-400 text-xs mb-4">إضافة وتعديل الفصول التعليمية ومشرفاتها</p>
+
+                <form onSubmit={handleAddClassroom} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <input
+                    type="text"
+                    value={newClassroomName}
+                    onChange={(e) => setNewClassroomName(e.target.value)}
+                    placeholder="اسم الفصل (مثل: فصل النجوم)..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    required
+                  />
+                  <input
+                    type="text"
+                    value={newClassroomSupervisor}
+                    onChange={(e) => setNewClassroomSupervisor(e.target.value)}
+                    placeholder="المشرفة المسؤولة..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  />
+                  <input
+                    type="text"
+                    value={newClassroomAge}
+                    onChange={(e) => setNewClassroomAge(e.target.value)}
+                    placeholder="الفئة العمرية..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm flex items-center justify-center gap-1 transition shadow-md"
+                  >
+                    <Plus className="w-4 h-4" /> إضافة فصل
+                  </button>
+                </form>
               </div>
 
-              {/* نموذج إضافة نشاط جديد */}
-              <form onSubmit={handleAddActivity} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-4 gap-3">
-                <input
-                  type="text"
-                  value={newActivityTitle}
-                  onChange={(e) => setNewActivityTitle(e.target.value)}
-                  placeholder="عنوان النشاط (مثال: نشاط الرسم)..."
-                  className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                  required
-                />
-                <select
-                  value={newActivityCategory}
-                  onChange={(e) => setNewActivityCategory(e.target.value)}
-                  className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white"
-                >
-                  <option value="إنجاز">إنجاز</option>
-                  <option value="وجبات">وجبات</option>
-                  <option value="تعليمي">تعليمي</option>
-                  <option value="ترفيهي">ترفيهي</option>
-                </select>
-                <input
-                  type="text"
-                  value={newActivityTime}
-                  onChange={(e) => setNewActivityTime(e.target.value)}
-                  placeholder="الوقت (مثال: 09:00 صباحاً)..."
-                  className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm flex items-center justify-center gap-1 transition shadow-md"
-                >
-                  <Plus className="w-4 h-4" /> إضافة نشاط
-                </button>
-              </form>
-
-              {/* عرض كروت الأنشطة اليومية */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {activities.map(act => (
-                  <div key={act.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative">
-                    <span className={`inline-block px-3 py-0.5 rounded-full text-xs font-bold mb-2 ${act.category === 'وجبات' ? 'bg-purple-100 text-purple-600' : 'bg-pink-100 text-pink-600'}`}>
-                      {act.category}
-                    </span>
-                    <h3 className="font-bold text-slate-800 text-base mb-1">{act.title}</h3>
-                    <p className="text-slate-400 text-xs">فصل: {act.classroom} | الوقت: {act.time}</p>
+                {classrooms.map(cls => (
+                  <div key={cls.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex justify-between items-center">
+                    <div>
+                      <span className="text-xs bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full font-bold mb-2 inline-block">الفئة: {cls.ageGroup}</span>
+                      <h3 className="font-bold text-slate-800 text-lg">{cls.name}</h3>
+                      <p className="text-slate-400 text-xs mt-1">المشرفة: {cls.supervisor}</p>
+                    </div>
+                    <div className="bg-indigo-50 p-3 rounded-2xl text-indigo-600">
+                      <School className="w-8 h-8" />
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* 3. الأطفال والطلاب (بيانات الطفل كاملة + إضافة بدون مشاكل) */}
+          {/* 2. الفيديوهات التعليمية (جديد) */}
+          {activeTab === 'videos' && (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h2 className="text-xl font-bold text-slate-800 mb-1">الفيديوهات التعليمية والترفيهية</h2>
+                <p className="text-slate-400 text-xs mb-4">إضافة روابط الفيديوهات والشروحات للأطفال والمعلمات</p>
+
+                <form onSubmit={handleAddVideo} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <input
+                    type="text"
+                    value={newVideoTitle}
+                    onChange={(e) => setNewVideoTitle(e.target.value)}
+                    placeholder="عنوان الفيديو..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    required
+                  />
+                  <input
+                    type="url"
+                    value={newVideoUrl}
+                    onChange={(e) => setNewVideoUrl(e.target.value)}
+                    placeholder="رابط الفيديو (URL)..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    required
+                  />
+                  <select
+                    value={newVideoCategory}
+                    onChange={(e) => setNewVideoCategory(e.target.value)}
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white"
+                  >
+                    <option value="تعليمي">تعليمي</option>
+                    <option value="ترفيهي">ترفيهي</option>
+                    <option value="أناشيد">أناشيد</option>
+                  </select>
+                  <button
+                    type="submit"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm flex items-center justify-center gap-1 transition shadow-md"
+                  >
+                    <Plus className="w-4 h-4" /> إضافة فيديو
+                  </button>
+                </form>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {videos.map(vid => (
+                  <div key={vid.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                      <span className="inline-block px-3 py-0.5 rounded-full text-xs font-bold mb-2 bg-purple-100 text-purple-600">
+                        {vid.category}
+                      </span>
+                      <h3 className="font-bold text-slate-800 text-base mb-2">{vid.title}</h3>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
+                      <a 
+                        href={vid.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-xs text-indigo-600 hover:underline font-semibold flex items-center gap-1"
+                      >
+                        <Video className="w-4 h-4" /> مشاهدة الفيديو
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* الأطفال والطلاب */}
           {activeTab === 'children' && (
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                 <h2 className="text-xl font-bold text-slate-800 mb-1">إدارة الأطفال والطلاب</h2>
-                <p className="text-slate-400 text-xs mb-4">إضافة وتحديث بيانات الأطفال، تاريخ الميلاد، وأرقام أولياء الأمور</p>
+                <p className="text-slate-400 text-xs mb-4">إضافة وتحديث بيانات الأطفال وتاريخ الميلاد والفصل</p>
 
-                {/* نموذج الإضافة */}
-                <form onSubmit={handleAddChild} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <form onSubmit={handleAddChild} className="grid grid-cols-1 sm:grid-cols-5 gap-3">
                   <input
                     type="text"
                     value={newChildName}
@@ -398,6 +539,15 @@ export default function NurseryManagementSystem() {
                     className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
                     required
                   />
+                  <select
+                    value={newChildClassroom}
+                    onChange={(e) => setNewChildClassroom(e.target.value)}
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white"
+                  >
+                    {classrooms.map(c => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
+                    ))}
+                  </select>
                   <button
                     type="submit"
                     className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm flex items-center justify-center gap-1 transition shadow-md"
@@ -407,7 +557,6 @@ export default function NurseryManagementSystem() {
                 </form>
               </div>
 
-              {/* جدول الأطفال */}
               <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                 <table className="w-full text-right border-collapse">
                   <thead>
@@ -439,12 +588,69 @@ export default function NurseryManagementSystem() {
             </div>
           )}
 
-          {/* 4. إدارة الصلاحيات والمستخدمين */}
+          {/* الأنشطة اليومية */}
+          {activeTab === 'activities' && (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h2 className="text-xl font-bold text-slate-800">جدول الأنشطة اليومية</h2>
+                <p className="text-slate-400 text-xs">عرض وإضافة الأنشطة الخاصة بالأطفال والفصول</p>
+              </div>
+
+              <form onSubmit={handleAddActivity} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <input
+                  type="text"
+                  value={newActivityTitle}
+                  onChange={(e) => setNewActivityTitle(e.target.value)}
+                  placeholder="عنوان النشاط..."
+                  className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  required
+                />
+                <select
+                  value={newActivityCategory}
+                  onChange={(e) => setNewActivityCategory(e.target.value)}
+                  className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white"
+                >
+                  <option value="إنجاز">إنجاز</option>
+                  <option value="وجبات">وجبات</option>
+                  <option value="تعليمي">تعليمي</option>
+                  <option value="ترفيهي">ترفيهي</option>
+                </select>
+                <input
+                  type="text"
+                  value={newActivityTime}
+                  onChange={(e) => setNewActivityTime(e.target.value)}
+                  placeholder="الوقت (مثال: 09:00 صباحاً)..."
+                  className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  required
+                />
+                <button
+                  type="submit"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm flex items-center justify-center gap-1 transition shadow-md"
+                >
+                  <Plus className="w-4 h-4" /> إضافة نشاط
+                </button>
+              </form>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {activities.map(act => (
+                  <div key={act.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <span className={`inline-block px-3 py-0.5 rounded-full text-xs font-bold mb-2 ${act.category === 'وجبات' ? 'bg-purple-100 text-purple-600' : 'bg-pink-100 text-pink-600'}`}>
+                      {act.category}
+                    </span>
+                    <h3 className="font-bold text-slate-800 text-base mb-1">{act.title}</h3>
+                    <p className="text-slate-400 text-xs">فصل: {act.classroom} | الوقت: {act.time}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* إدارة الصلاحيات */}
           {activeTab === 'permissions' && currentUser?.role === 'admin' && (
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                 <h2 className="text-xl font-bold text-slate-800 mb-1">إدارة الصلاحيات والمستخدمين</h2>
-                <p className="text-slate-400 text-xs mb-4">إنشاء حسابات جديدة وتحديد الأدوار (مدير النظام، معلمة، محاسب)</p>
+                <p className="text-slate-400 text-xs mb-4">إنشاء حسابات جديدة وتحديد الأدوار</p>
 
                 <form onSubmit={handleAddUser} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <input
@@ -510,7 +716,7 @@ export default function NurseryManagementSystem() {
             </div>
           )}
 
-          {/* 5. سجل الحضور والغياب */}
+          {/* سجل الحضور */}
           {activeTab === 'attendance' && (
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
@@ -553,7 +759,7 @@ export default function NurseryManagementSystem() {
             </div>
           )}
 
-          {/* 6. الرسوم والماليات */}
+          {/* الرسوم والماليات */}
           {activeTab === 'fees' && (
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
