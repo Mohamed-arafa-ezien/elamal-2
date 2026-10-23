@@ -47,6 +47,10 @@ export default function App() {
   // إيصال الدفع
   const [receiptData, setReceiptData] = useState(null);
 
+  // 🛡️ States التعديل
+  const [editingChildId, setEditingChildId] = useState(null);
+  const [editingUserId, setEditingUserId] = useState(null);
+
   const [users, setUsers] = useState(() => {
     const saved = localStorage.getItem('nursery_users');
     return saved ? JSON.parse(saved) : [
@@ -114,11 +118,12 @@ export default function App() {
       { id: 3, name: "عمر خالد", dob: "2022-02-20", joinDate: "2026-10-01", phone: "01234567890", classroom: "فصل البراعم", status: "absent", checkIn: "-", monthlyFee: 1000, paidFee: 0, bloodType: "B+", allergies: "لا يوجد", emergencyContact: "01222222222" }
     ];
   });
+  
   const [newChildName, setNewChildName] = useState('');
   const [newChildDob, setNewChildDob] = useState('');
   const [newChildJoinDate, setNewChildJoinDate] = useState('');
   const [newChildPhone, setNewChildPhone] = useState('');
-  const [newChildClassroom, setNewChildClassroom] = useState('فصل الزهور');
+  const [newChildClassroom, setNewChildClassroom] = useState('');
   const [newChildMonthlyFee, setNewChildMonthlyFee] = useState('');
   const [newChildBloodType, setNewChildBloodType] = useState('O+');
   const [newChildAllergies, setNewChildAllergies] = useState('');
@@ -279,7 +284,6 @@ export default function App() {
   const childrenForFilter = reportClassroom === 'all' ? children : children.filter(c => c.classroom === reportClassroom);
   const searchedChildren = children.filter(c => c.name.includes(searchChildQuery) || c.phone.includes(searchChildQuery));
 
-  // فلاتر الحضور
   const attendanceDisplayChildren = children.filter(c => {
     const matchClass = attendanceFilterClassroom === 'all' || c.classroom === attendanceFilterClassroom;
     const matchName = c.name.includes(attendanceSearchQuery);
@@ -298,16 +302,76 @@ export default function App() {
     }
   };
 
-  const handleAddChild = (e) => {
-    e.preventDefault();
-    const newChild = { 
-      id: Date.now(), name: newChildName, dob: newChildDob, joinDate: newChildJoinDate || new Date().toISOString().split('T')[0], 
-      phone: newChildPhone, classroom: newChildClassroom, status: 'absent', checkIn: '-', monthlyFee: Number(newChildMonthlyFee), 
-      paidFee: 0, bloodType: newChildBloodType, allergies: newChildAllergies || 'لا يوجد', emergencyContact: newChildEmergencyContact || 'لا يوجد'
-    };
-    setChildren([...children, newChild]);
+  // 🛡️ تعديل وحفظ الطفل
+  const startEditChild = (child) => {
+    setEditingChildId(child.id);
+    setNewChildName(child.name);
+    setNewChildDob(child.dob);
+    setNewChildJoinDate(child.joinDate);
+    setNewChildPhone(child.phone);
+    setNewChildClassroom(child.classroom);
+    setNewChildMonthlyFee(child.monthlyFee);
+    setNewChildBloodType(child.bloodType || 'O+');
+    setNewChildAllergies(child.allergies || '');
+    setNewChildEmergencyContact(child.emergencyContact || '');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEditChild = () => {
+    setEditingChildId(null);
     setNewChildName(''); setNewChildDob(''); setNewChildJoinDate(''); setNewChildPhone(''); setNewChildMonthlyFee(''); setNewChildAllergies(''); setNewChildEmergencyContact('');
-    alert('تم إضافة الطفل بنجاح!');
+  };
+
+  const handleSaveChild = (e) => {
+    e.preventDefault();
+    if (editingChildId) {
+      setChildren(children.map(c => c.id === editingChildId ? { 
+        ...c, name: newChildName, dob: newChildDob, joinDate: newChildJoinDate, phone: newChildPhone, 
+        classroom: newChildClassroom, monthlyFee: Number(newChildMonthlyFee), bloodType: newChildBloodType, 
+        allergies: newChildAllergies || 'لا يوجد', emergencyContact: newChildEmergencyContact || 'لا يوجد'
+      } : c));
+      alert('تم تحديث بيانات الطفل بنجاح!');
+      cancelEditChild();
+    } else {
+      const newChild = { 
+        id: Date.now(), name: newChildName, dob: newChildDob, joinDate: newChildJoinDate || new Date().toISOString().split('T')[0], 
+        phone: newChildPhone, classroom: newChildClassroom, status: 'absent', checkIn: '-', monthlyFee: Number(newChildMonthlyFee), 
+        paidFee: 0, bloodType: newChildBloodType, allergies: newChildAllergies || 'لا يوجد', emergencyContact: newChildEmergencyContact || 'لا يوجد'
+      };
+      setChildren([...children, newChild]);
+      setNewChildName(''); setNewChildDob(''); setNewChildJoinDate(''); setNewChildPhone(''); setNewChildMonthlyFee(''); setNewChildAllergies(''); setNewChildEmergencyContact('');
+      alert('تم إضافة الطفل بنجاح!');
+    }
+  };
+
+  // 🛡️ تعديل وحفظ المستخدم
+  const startEditUser = (user) => {
+    setEditingUserId(user.id);
+    setNewName(user.name);
+    setNewUsername(user.username);
+    setNewPassword(user.password);
+    setNewRole(user.role);
+  };
+
+  const cancelEditUser = () => {
+    setEditingUserId(null);
+    setNewUsername(''); setNewPassword(''); setNewName(''); setNewRole('teacher');
+  };
+
+  const handleSaveUser = (e) => {
+    e.preventDefault();
+    const roleLabel = newRole === 'admin' ? 'مدير النظام' : newRole === 'teacher' ? 'معلمة' : 'محاسب';
+    if (editingUserId) {
+      setUsers(users.map(u => u.id === editingUserId ? { ...u, username: newUsername, password: newPassword, name: newName, role: newRole, roleLabel } : u));
+      alert('تم تحديث بيانات المستخدم بنجاح!');
+      cancelEditUser();
+    } else {
+      const newUserId = Date.now();
+      setUsers([...users, { id: newUserId, username: newUsername, password: newPassword, name: newName, role: newRole, roleLabel }]);
+      setUserPermissions(prev => ({ ...prev, [newUserId]: { ...DEFAULT_ROLE_PERMISSIONS[newRole] } }));
+      setNewUsername(''); setNewPassword(''); setNewName('');
+      alert('تم إضافة المستخدم بنجاح!');
+    }
   };
 
   const handlePaymentUpdate = (childId, addedAmount) => {
@@ -362,15 +426,6 @@ export default function App() {
     e.preventDefault();
     setVideos([...videos, { id: Date.now(), title: newVideoTitle, url: newVideoUrl, category: newVideoCategory }]);
     setNewVideoTitle(''); setNewVideoUrl('');
-  };
-
-  const handleAddUser = (e) => {
-    e.preventDefault();
-    const newUserId = Date.now();
-    const roleLabel = newRole === 'admin' ? 'مدير النظام' : newRole === 'teacher' ? 'معلمة' : 'محاسب';
-    setUsers([...users, { id: newUserId, username: newUsername, password: newPassword, name: newName, role: newRole, roleLabel }]);
-    setUserPermissions(prev => ({ ...prev, [newUserId]: { ...DEFAULT_ROLE_PERMISSIONS[newRole] } }));
-    setNewUsername(''); setNewPassword(''); setNewName('');
   };
 
   const handleAddActivity = (e) => {
@@ -463,7 +518,6 @@ export default function App() {
       </header>
 
       <div className="flex-1 flex flex-col md:flex-row p-6 gap-6 print:p-0 print:block">
-        {/* القائمة الجانبية كاملة */}
         <aside className={`w-full md:w-64 rounded-3xl p-4 border shadow-sm h-fit print:hidden ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
           <nav className="space-y-1">
             {hasPermission('viewDashboard') && <button onClick={() => setActiveTab('dashboard')} className={`w-full text-right px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === 'dashboard' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'hover:bg-slate-100 text-slate-500'}`}>📊 لوحة التحكم</button>}
@@ -481,7 +535,6 @@ export default function App() {
 
         <main className="flex-1 print:w-full print:m-0">
           
-          {/* الداشبورد */}
           {activeTab === 'dashboard' && hasPermission('viewDashboard') && (
             <div className="space-y-6 print:hidden">
               <div className={`bg-gradient-to-l from-indigo-600 to-indigo-800 rounded-3xl p-8 text-white shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 transform transition-all duration-700 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
@@ -569,7 +622,6 @@ export default function App() {
             </div>
           )}
 
-          {/* الأطفال */}
           {activeTab === 'children' && hasPermission('viewChildren') && (
             <div className="space-y-6">
               <div className="hidden print:block text-center mb-6 border-b-2 border-slate-800 pb-4">
@@ -586,9 +638,9 @@ export default function App() {
               </div>
 
               {hasPermission('addChild') && (
-                <div className={`p-6 rounded-3xl border shadow-sm print:hidden ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-                  <h2 className="text-lg font-bold mb-4">إضافة طفل جديد</h2>
-                  <form onSubmit={handleAddChild} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <div className={`p-6 rounded-3xl border shadow-sm print:hidden ${editingChildId ? 'border-indigo-400 bg-indigo-50/30' : isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <h2 className="text-lg font-bold mb-4">{editingChildId ? '✏️ تعديل بيانات الطفل' : 'إضافة طفل جديد'}</h2>
+                  <form onSubmit={handleSaveChild} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                     <input type="text" value={newChildName} onChange={(e) => setNewChildName(e.target.value)} placeholder="اسم الطفل..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`} required />
                     <input type="date" value={newChildDob} onChange={(e) => setNewChildDob(e.target.value)} className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`} required />
                     <input type="date" value={newChildJoinDate} onChange={(e) => setNewChildJoinDate(e.target.value)} className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`} required />
@@ -602,7 +654,14 @@ export default function App() {
                       <input type="text" value={newChildAllergies} onChange={(e) => setNewChildAllergies(e.target.value)} placeholder="الحساسية..." className={`w-1/2 px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`} />
                       <input type="tel" value={newChildEmergencyContact} onChange={(e) => setNewChildEmergencyContact(e.target.value)} placeholder="رقم الطوارئ..." className={`w-1/2 px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-700 border-slate-600' : 'border-slate-300'}`} />
                     </div>
-                    <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm md:col-span-4 mt-2">إضافة الطفل ➕</button>
+                    <div className="flex gap-2 md:col-span-4 mt-2">
+                      <button type="submit" className={`flex-1 ${editingChildId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white font-semibold px-4 py-2 rounded-xl text-sm transition`}>
+                        {editingChildId ? 'تحديث البيانات ✔️' : 'إضافة الطفل ➕'}
+                      </button>
+                      {editingChildId && (
+                        <button type="button" onClick={cancelEditChild} className="bg-slate-400 hover:bg-slate-500 text-white font-semibold px-4 py-2 rounded-xl text-sm transition">إلغاء التعديل ❌</button>
+                      )}
+                    </div>
                   </form>
                 </div>
               )}
@@ -616,7 +675,7 @@ export default function App() {
                         <th className="p-4 font-bold">بيانات طبية 🩸</th>
                         <th className="p-4 font-bold">ولي الأمر</th>
                         {(hasPermission('viewFees') || hasPermission('viewAccounting')) && (<><th className="p-4 font-bold">القسط</th><th className="p-4 font-bold">المستحق</th><th className="p-4 font-bold">المدفوع</th><th className="p-4 font-bold">المتبقي</th></>)}
-                        {hasPermission('deleteChild') && <th className="p-4 font-bold text-center print:hidden">إجراءات</th>}
+                        {(hasPermission('deleteChild') || hasPermission('addChild')) && <th className="p-4 font-bold text-center print:hidden">إجراءات</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-sm">
@@ -629,7 +688,12 @@ export default function App() {
                             <td className="p-4 text-xs"><div className="flex flex-col gap-1 text-[11px]"><span className="bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold">فصيلة: {child.bloodType}</span>{child.allergies !== 'لا يوجد' && <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-bold">حساسية: {child.allergies}</span>}</div></td>
                             <td className="p-4 text-xs font-mono">{child.phone}</td>
                             {(hasPermission('viewFees') || hasPermission('viewAccounting')) && (<><td className="p-4 font-bold">{child.monthlyFee}</td><td className="p-4 font-bold text-indigo-500">{totalDue}</td><td className="p-4 font-bold text-emerald-500">{child.paidFee}</td><td className="p-4 font-bold text-amber-500">{balance}</td></>)}
-                            {hasPermission('deleteChild') && (<td className="p-4 text-center print:hidden"><button onClick={() => deleteChild(child.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl">🗑️</button></td>)}
+                            {(hasPermission('deleteChild') || hasPermission('addChild')) && (
+                              <td className="p-4 text-center print:hidden space-x-1 space-x-reverse whitespace-nowrap">
+                                {hasPermission('addChild') && <button onClick={() => startEditChild(child)} className="text-indigo-600 hover:bg-indigo-50 p-2 rounded-xl transition" title="تعديل">✏️</button>}
+                                {hasPermission('deleteChild') && <button onClick={() => deleteChild(child.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl transition" title="حذف">🗑️</button>}
+                              </td>
+                            )}
                           </tr>
                         );
                       })}
@@ -640,7 +704,6 @@ export default function App() {
             </div>
           )}
 
-          {/* الرسوم */}
           {activeTab === 'fees' && hasPermission('viewFees') && (
             <div className="space-y-6">
               <div className="hidden print:block text-center mb-6 border-b-2 border-slate-800 pb-4">
@@ -681,7 +744,6 @@ export default function App() {
             </div>
           )}
 
-          {/* الحسابات */}
           {activeTab === 'accounting' && hasPermission('viewAccounting') && (
             <div className="space-y-6">
               <div className="hidden print:block text-center mb-6 border-b-2 border-slate-800 pb-4">
@@ -736,7 +798,6 @@ export default function App() {
             </div>
           )}
 
-          {/* الحضور */}
           {activeTab === 'attendance' && hasPermission('manageAttendance') && (
             <div className="space-y-6">
               <div className="hidden print:block text-center mb-6 border-b-2 border-slate-800 pb-4">
@@ -781,7 +842,6 @@ export default function App() {
             </div>
           )}
 
-          {/* التقارير الشاملة */}
           {activeTab === 'reports' && hasPermission('viewReports') && (
             <div className="space-y-6">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center print:hidden gap-4">
@@ -835,7 +895,6 @@ export default function App() {
             </div>
           )}
 
-          {/* الفصول */}
           {activeTab === 'classrooms' && hasPermission('manageClassrooms') && (
             <div className="space-y-6 print:hidden">
               <div className={`p-6 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
@@ -860,7 +919,6 @@ export default function App() {
             </div>
           )}
 
-          {/* الفيديوهات */}
           {activeTab === 'videos' && hasPermission('manageVideos') && (
             <div className="space-y-6 print:hidden">
               <div className={`p-6 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
@@ -883,7 +941,6 @@ export default function App() {
             </div>
           )}
 
-          {/* الأنشطة */}
           {activeTab === 'activities' && hasPermission('manageActivities') && (
             <div className="space-y-6 print:hidden">
               <div className={`p-6 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
@@ -906,18 +963,28 @@ export default function App() {
             </div>
           )}
 
-          {/* الصلاحيات */}
           {activeTab === 'permissions' && hasPermission('manageUsers') && (
             <div className="space-y-6 print:hidden">
-              <div className={`p-6 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-                <h2 className="text-xl font-bold mb-4">إدارة الصلاحيات</h2>
-                <div className="flex flex-col md:flex-row gap-6">
+              <div className={`p-6 rounded-3xl border shadow-sm ${editingUserId ? 'border-amber-400 bg-amber-50/30' : isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                <h2 className="text-xl font-bold mb-4">{editingUserId ? '✏️ تعديل بيانات المستخدم' : 'إدارة الصلاحيات والمستخدمين'}</h2>
+                
+                <div className="flex flex-col md:flex-row gap-6 mb-6">
                   <div className={`w-full md:w-1/3 border-l pl-4 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                    {users.map(u => (
-                      <button key={u.id} onClick={() => setSelectedUserId(u.id)} className={`w-full text-right px-4 py-3 rounded-xl mb-2 transition border ${selectedUserId === u.id ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : `hover:bg-slate-100 ${isDarkMode ? 'border-slate-600' : 'bg-white border-slate-200'}`}`}>
-                        <span className="block font-bold">{u.name}</span><span className="text-xs">{u.roleLabel}</span>
-                      </button>
-                    ))}
+                    <h3 className="font-bold mb-3 text-sm">اختر المستخدم لتعديل صلاحياته:</h3>
+                    <div className="space-y-2">
+                      {users.map(u => (
+                        <button key={u.id} onClick={() => setSelectedUserId(u.id)} className={`w-full text-right px-4 py-3 rounded-xl transition border ${selectedUserId === u.id ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : `hover:bg-slate-100 ${isDarkMode ? 'border-slate-600' : 'bg-white border-slate-200'}`}`}>
+                          <div className="flex justify-between items-center">
+                            <span className="block font-bold">{u.name}</span>
+                            <div className="flex gap-1">
+                              <button onClick={(e) => { e.stopPropagation(); startEditUser(u); }} className="p-1 text-indigo-600 hover:bg-indigo-100 rounded">✏️</button>
+                              {u.username !== 'admin' && <button onClick={(e) => { e.stopPropagation(); deleteUser(u.id); }} className="p-1 text-rose-600 hover:bg-rose-100 rounded">🗑️</button>}
+                            </div>
+                          </div>
+                          <span className="text-xs">{u.roleLabel}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div className="w-full md:w-2/3">
                     {selectedUserId ? (
@@ -936,8 +1003,24 @@ export default function App() {
                           </tbody>
                         </table>
                       </div>
-                    ) : (<div className="text-center text-slate-400 py-10">اختر مستخدم لعرض صلاحياته</div>)}
+                    ) : (<div className="text-center text-slate-400 py-10">اختر مستخدم من القائمة لعرض صلاحياته</div>)}
                   </div>
+                </div>
+
+                <div className={`p-4 rounded-xl border ${isDarkMode ? 'border-slate-600 bg-slate-700' : 'border-slate-200 bg-slate-50'}`}>
+                  <h3 className="text-lg font-bold mb-3">{editingUserId ? 'تحديث بيانات المستخدم' : 'إضافة مستخدم جديد'}</h3>
+                  <form onSubmit={handleSaveUser} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="الاسم الكامل..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-800 border-slate-600' : 'border-slate-300'}`} required />
+                    <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="اسم المستخدم..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-800 border-slate-600' : 'border-slate-300'}`} required />
+                    <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="كلمة المرور..." className={`px-4 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-800 border-slate-600' : 'border-slate-300'}`} required />
+                    <div className="flex gap-2">
+                      <select value={newRole} onChange={(e) => setNewRole(e.target.value)} className={`flex-1 px-3 py-2 border rounded-xl text-sm ${isDarkMode ? 'bg-slate-800 border-slate-600' : 'border-slate-300'}`}><option value="admin">مدير النظام</option><option value="teacher">معلمة</option><option value="accountant">محاسب</option></select>
+                      <button type="submit" className={`${editingUserId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white font-semibold px-4 py-2 rounded-xl text-sm transition`}>{editingUserId ? 'تحديث ✔️' : 'إضافة ➕'}</button>
+                      {editingUserId && (
+                        <button type="button" onClick={cancelEditUser} className="bg-slate-400 hover:bg-slate-500 text-white font-semibold px-4 py-2 rounded-xl text-sm transition">إلغاء ❌</button>
+                      )}
+                    </div>
+                  </form>
                 </div>
               </div>
             </div>
