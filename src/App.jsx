@@ -7,18 +7,33 @@ export default function App() {
   const [passwordInput, setPasswordInput] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  // 1. حالة الأطفال مع الحفظ في الذاكرة المحلية
+  // 1. نظام المستخدمين والصلاحيات
+  const [users, setUsers] = useState(() => {
+    const saved = localStorage.getItem('nursery_users');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, username: 'admin', password: '123', role: 'admin' },
+      { id: 2, username: 'teacher', password: '123', role: 'teacher' },
+      { id: 3, username: 'accountant', password: '123', role: 'accountant' }
+    ];
+  });
+  const [newUsername, setNewUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newRole, setNewRole] = useState('teacher');
+
+  // 2. حالة الأطفال (شاملة الاسم، تاريخ الميلاد، ورقم ولي الأمر)
   const [children, setChildren] = useState(() => {
     const saved = localStorage.getItem('nursery_children');
     return saved ? JSON.parse(saved) : [
-      { id: 1, name: "يوسف محمد", status: "present", checkIn: "07:45 ص" },
-      { id: 2, name: "مريم أحمد", status: "present", checkIn: "08:00 ص" },
-      { id: 3, name: "عمر خالد", status: "absent", checkIn: "-" }
+      { id: 1, name: "يوسف محمد", dob: "2022-05-10", phone: "01012345678", status: "present", checkIn: "07:45 ص" },
+      { id: 2, name: "مريم أحمد", dob: "2021-08-15", phone: "01198765432", status: "present", checkIn: "08:00 ص" },
+      { id: 3, name: "عمر خالد", dob: "2022-02-20", phone: "01234567890", status: "absent", checkIn: "-" }
     ];
   });
   const [newChildName, setNewChildName] = useState('');
+  const [newChildDob, setNewChildDob] = useState('');
+  const [newChildPhone, setNewChildPhone] = useState('');
 
-  // 2. حالة الفصول الدراسية مع الحفظ في الذاكرة المحلية
+  // 3. حالة الفصول الدراسية
   const [classrooms, setClassrooms] = useState(() => {
     const saved = localStorage.getItem('nursery_classrooms');
     return saved ? JSON.parse(saved) : [
@@ -28,67 +43,88 @@ export default function App() {
   });
   const [newClassroomName, setNewClassroomName] = useState('');
 
-  // 3. حالة المعلمات وطاقم العمل مع الحفظ في الذاكرة المحلية
+  // 4. حالة المعلمات
   const [teachers, setTeachers] = useState(() => {
     const saved = localStorage.getItem('nursery_teachers');
     return saved ? JSON.parse(saved) : [
-      { id: 1, name: "أستاذة فاطمة", role: "معلمة أطفال" },
-      { id: 2, name: "أستاذة مريم", role: "معلمة مساعد" }
+      { id: 1, name: "أستاذة فاطمة", role: "معلمة أطفال" }
     ];
   });
   const [newTeacherName, setNewTeacherName] = useState('');
   const [newTeacherRole, setNewTeacherRole] = useState('');
 
-  // حفظ البيانات تلقائياً
+  // مزامنة الحفظ التلقائي مع الذاكرة المحلية
+  useEffect(() => {
+    localStorage.setItem('nursery_users', JSON.stringify(users));
+  }, [users]);
   useEffect(() => {
     localStorage.setItem('nursery_children', JSON.stringify(children));
   }, [children]);
-
   useEffect(() => {
     localStorage.setItem('nursery_classrooms', JSON.stringify(classrooms));
   }, [classrooms]);
-
   useEffect(() => {
     localStorage.setItem('nursery_teachers', JSON.stringify(teachers));
   }, [teachers]);
 
-  // دالة تسجيل الدخول
+  // دالة تسجيل الدخول والتحقق من الصلاحيات
   const handleLogin = (e) => {
     e.preventDefault();
-    const defaultUsers = [
-      { username: 'admin', password: '123', role: 'admin' },
-      { username: 'teacher', password: '123', role: 'teacher' },
-      { username: 'accountant', password: '123', role: 'accountant' }
-    ];
-    
-    const savedUsers = JSON.parse(localStorage.getItem('nursery_users')) || defaultUsers;
-    const found = savedUsers.find(
+    const found = users.find(
       u => u.username === usernameInput && u.password === passwordInput
     );
 
     if (found) {
       setCurrentUser(found);
       setIsLoggedIn(true);
+      setActiveTab('dashboard');
     } else {
       alert('اسم المستخدم أو كلمة المرور غير مسجلة بشكل صحيح!');
     }
   };
 
-  // إضافة طفل
+  // إضافة مستخدم جديد وصلاحياته (مدير النظام فقط)
+  const handleAddUser = (e) => {
+    e.preventDefault();
+    if (!newUsername.trim() || !newPassword.trim()) {
+      alert('الرجاء إدخال اسم المستخدم وكلمة المرور');
+      return;
+    }
+    if (users.some(u => u.username === newUsername)) {
+      alert('اسم المستخدم موجود مسبقاً!');
+      return;
+    }
+    const newUser = {
+      id: Date.now(),
+      username: newUsername,
+      password: newPassword,
+      role: newRole
+    };
+    setUsers([...users, newUser]);
+    setNewUsername('');
+    setNewPassword('');
+    alert('تم إضافة المستخدم وصلاحياته بنجاح!');
+  };
+
+  // دالة إضافة الطفل بالبيانات الكاملة (الاسم، تاريخ الميلاد، رقم ولي الأمر)
   const handleAddChild = (e) => {
     e.preventDefault();
-    if (!newChildName.trim()) {
-      alert('الرجاء إدخال اسم الطفل');
+    if (!newChildName.trim() || !newChildDob.trim() || !newChildPhone.trim()) {
+      alert('الرجاء إدخال جميع بيانات الطفل (الاسم، تاريخ الميلاد، ورقم ولي الأمر)');
       return;
     }
     const newChild = {
       id: Date.now(),
       name: newChildName,
+      dob: newChildDob,
+      phone: newChildPhone,
       status: 'absent',
       checkIn: '-'
     };
     setChildren([...children, newChild]);
     setNewChildName('');
+    setNewChildDob('');
+    setNewChildPhone('');
     alert('تم إضافة الطفل بنجاح!');
   };
 
@@ -99,11 +135,7 @@ export default function App() {
       alert('الرجاء إدخال اسم الفصل');
       return;
     }
-    const newClass = {
-      id: Date.now(),
-      name: newClassroomName
-    };
-    setClassrooms([...classrooms, newClass]);
+    setClassrooms([...classrooms, { id: Date.now(), name: newClassroomName }]);
     setNewClassroomName('');
     alert('تم إضافة الفصل بنجاح!');
   };
@@ -115,12 +147,7 @@ export default function App() {
       alert('الرجاء إدخال اسم المعلمة');
       return;
     }
-    const newTeach = {
-      id: Date.now(),
-      name: newTeacherName,
-      role: newTeacherRole || 'معلمة'
-    };
-    setTeachers([...teachers, newTeach]);
+    setTeachers([...teachers, { id: Date.now(), name: newTeacherName, role: newTeacherRole || 'معلمة' }]);
     setNewTeacherName('');
     setNewTeacherRole('');
     alert('تم إضافة المعلمة بنجاح!');
@@ -184,14 +211,18 @@ export default function App() {
     );
   }
 
-  // الواجهة الرئيسية
+  // الواجهة الرئيسية مع التحكم في الصلاحيات
   return (
     <div dir="rtl" className="min-h-screen bg-slate-100 flex flex-col md:flex-row">
       {/* القائمة الجانبية */}
       <aside className="w-full md:w-64 bg-white border-l border-slate-200 p-6 flex flex-col justify-between">
         <div>
           <h2 className="text-xl font-bold text-indigo-600 mb-1">حضانة الأمل</h2>
-          <p className="text-xs text-slate-400 mb-6">مرحباً، {currentUser?.username}</p>
+          <p className="text-xs text-slate-400 mb-1">مرحباً، {currentUser?.username}</p>
+          <span className="inline-block bg-indigo-50 text-indigo-600 text-xs px-2.5 py-0.5 rounded-full font-semibold mb-6">
+            الصلاحية: {currentUser?.role}
+          </span>
+          
           <nav className="space-y-2">
             <button
               onClick={() => setActiveTab('dashboard')}
@@ -223,10 +254,19 @@ export default function App() {
             >
               👩‍🏫 إدارة المعلمات
             </button>
+            
+            {currentUser?.role === 'admin' && (
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`w-full text-right px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'users' ? 'bg-purple-50 text-purple-600' : 'text-purple-600 hover:bg-purple-50'}`}
+              >
+                🔐 إدارة المستخدمين والصلاحيات
+              </button>
+            )}
           </nav>
         </div>
         <button
-          onClick={() => setIsLoggedIn(false)}
+          onClick={() => { setIsLoggedIn(false); setCurrentUser(null); }}
           className="w-full bg-rose-50 text-rose-600 hover:bg-rose-100 font-medium py-2 rounded-xl text-sm transition mt-4"
         >
           تسجيل الخروج
@@ -239,9 +279,9 @@ export default function App() {
           <div className="space-y-6">
             <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl p-6 text-white shadow-md">
               <h1 className="text-2xl font-bold mb-1">مرحباً بك في نظام حضانة الأمل ✨</h1>
-              <p className="text-indigo-100 text-sm">إدارة شؤون الأطفال، الفصول، والمعلمات بكل سهولة.</p>
+              <p className="text-indigo-100 text-sm">إدارة شؤون الأطفال، الصلاحيات، الفصول، والمعلمات بكل سهولة.</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <span className="text-slate-400 text-sm">إجمالي الأطفال</span>
                 <h3 className="text-3xl font-bold text-slate-800 mt-1">{children.length}</h3>
@@ -253,6 +293,10 @@ export default function App() {
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <span className="text-slate-400 text-sm">إجمالي المعلمات</span>
                 <h3 className="text-3xl font-bold text-emerald-600 mt-1">{teachers.length}</h3>
+              </div>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <span className="text-slate-400 text-sm">إجمالي المستخدمين</span>
+                <h3 className="text-3xl font-bold text-purple-600 mt-1">{users.length}</h3>
               </div>
             </div>
           </div>
@@ -266,6 +310,7 @@ export default function App() {
                 <thead>
                   <tr className="bg-slate-100 text-slate-600 text-sm">
                     <th className="p-4 font-semibold">اسم الطفل</th>
+                    <th className="p-4 font-semibold">رقم ولي الأمر</th>
                     <th className="p-4 font-semibold">وقت الحضور</th>
                     <th className="p-4 font-semibold text-center">الحالة</th>
                   </tr>
@@ -274,6 +319,7 @@ export default function App() {
                   {children.map((child) => (
                     <tr key={child.id} className="hover:bg-slate-50 transition">
                       <td className="p-4 font-medium text-slate-800">{child.name}</td>
+                      <td className="p-4 text-slate-500 font-mono">{child.phone}</td>
                       <td className="p-4 text-slate-500">{child.checkIn}</td>
                       <td className="p-4 text-center space-x-2 space-x-reverse">
                         <button
@@ -300,32 +346,71 @@ export default function App() {
         {activeTab === 'children' && (
           <div>
             <h2 className="text-2xl font-bold text-slate-800 mb-6">إضافة وإدارة الأطفال</h2>
-            <form onSubmit={handleAddChild} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6 flex gap-3">
+            
+            {/* نموذج إضافة طفل جديد بالبيانات الكاملة */}
+            <form onSubmit={handleAddChild} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
               <input
                 type="text"
                 value={newChildName}
                 onChange={(e) => setNewChildName(e.target.value)}
-                placeholder="أدخل اسم الطفل الجديد..."
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="اسم الطفل الثلاثي..."
+                className="px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
               />
-              <button
-                type="submit"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2 rounded-xl transition shadow-md"
-              >
-                إضافة طفل ➕
-              </button>
+              <input
+                type="date"
+                value={newChildDob}
+                onChange={(e) => setNewChildDob(e.target.value)}
+                className="px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+              <div className="flex gap-2">
+                <input
+                  type="tel"
+                  value={newChildPhone}
+                  onChange={(e) => setNewChildPhone(e.target.value)}
+                  placeholder="رقم ولي الأمر..."
+                  className="flex-1 px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+                <button
+                  type="submit"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2 rounded-xl transition shadow-md whitespace-nowrap"
+                >
+                  إضافة طفل ➕
+                </button>
+              </div>
             </form>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h3 className="font-bold text-slate-700 mb-4">قائمة الأطفال المسجلين</h3>
-              <ul className="space-y-2">
-                {children.map(child => (
-                  <li key={child.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="font-medium text-slate-800">{child.name}</span>
-                    <span className="text-xs text-slate-500">الحالة: {child.status === 'present' ? 'حاضر' : 'غائب'}</span>
-                  </li>
-                ))}
-              </ul>
+            {/* جدول عرض بيانات الأطفال */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="p-4 border-b border-slate-100 bg-slate-50">
+                <h3 className="font-bold text-slate-700">قائمة الأطفال المسجلين وبياناتهم</h3>
+              </div>
+              <table className="w-full text-right border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 text-slate-600 text-sm">
+                    <th className="p-4 font-semibold">اسم الطفل</th>
+                    <th className="p-4 font-semibold">تاريخ الميلاد</th>
+                    <th className="p-4 font-semibold">رقم ولي الأمر</th>
+                    <th className="p-4 font-semibold">الحالة</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                  {children.map(child => (
+                    <tr key={child.id} className="hover:bg-slate-50 transition">
+                      <td className="p-4 font-medium text-slate-800">{child.name}</td>
+                      <td className="p-4 text-slate-600">{child.dob}</td>
+                      <td className="p-4 text-slate-600 font-mono">{child.phone}</td>
+                      <td className="p-4">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${child.status === 'present' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                          {child.status === 'present' ? 'حاضر' : 'غائب'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -339,69 +424,4 @@ export default function App() {
                 value={newClassroomName}
                 onChange={(e) => setNewClassroomName(e.target.value)}
                 placeholder="أدخل اسم الفصل الجديد (مثل: فصل النجوم)..."
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <button
-                type="submit"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2 rounded-xl transition shadow-md"
-              >
-                إضافة فصل 🏫
-              </button>
-            </form>
-
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h3 className="font-bold text-slate-700 mb-4">قائمة الفصول المسجلة</h3>
-              <ul className="space-y-2">
-                {classrooms.map(cls => (
-                  <li key={cls.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="font-medium text-slate-800">{cls.name}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'teachers' && (
-          <div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-6">إدارة المعلمات وطاقم العمل</h2>
-            <form onSubmit={handleAddTeacher} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col sm:flex-row gap-3">
-              <input
-                type="text"
-                value={newTeacherName}
-                onChange={(e) => setNewTeacherName(e.target.value)}
-                placeholder="اسم المعلمة..."
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <input
-                type="text"
-                value={newTeacherRole}
-                onChange={(e) => setNewTeacherRole(e.target.value)}
-                placeholder="المسمى الوظيفي (مثال: معلمة لغة عربية)..."
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <button
-                type="submit"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2 rounded-xl transition shadow-md"
-              >
-                إضافة معلمة 👩‍🏫
-              </button>
-            </form>
-
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h3 className="font-bold text-slate-700 mb-4">قائمة المعلمات المسجلات</h3>
-              <ul className="space-y-2">
-                {teachers.map(teach => (
-                  <li key={teach.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="font-medium text-slate-800">{teach.name}</span>
-                    <span className="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full">{teach.role}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-5
