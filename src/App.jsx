@@ -47,7 +47,7 @@ export default function App() {
   // إيصال الدفع
   const [receiptData, setReceiptData] = useState(null);
 
-  // 🛡️ States التعديل
+  // States التعديل
   const [editingChildId, setEditingChildId] = useState(null);
   const [editingUserId, setEditingUserId] = useState(null);
 
@@ -302,7 +302,6 @@ export default function App() {
     }
   };
 
-  // 🛡️ تعديل وحفظ الطفل
   const startEditChild = (child) => {
     setEditingChildId(child.id);
     setNewChildName(child.name);
@@ -344,7 +343,6 @@ export default function App() {
     }
   };
 
-  // 🛡️ تعديل وحفظ المستخدم
   const startEditUser = (user) => {
     setEditingUserId(user.id);
     setNewName(user.name);
@@ -386,10 +384,22 @@ export default function App() {
     setReceiptData({ childName: child.name, amountPaid: amount, remaining: newBalance > 0 ? newBalance : 0, date: new Date().toLocaleDateString('ar-EG'), time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) });
   };
 
+  // ✅ دالة الواتساب المعدلة (عشان تحل مشكلة الأرقام)
   const sendWhatsApp = (child, balance) => {
-    const phone = child.phone.replace(/^0/, '');
+    let cleanPhone = child.phone.replace(/\D/g, ''); // شيل أي مسافات أو رموز
+    
+    if (cleanPhone.startsWith('00')) {
+      cleanPhone = cleanPhone.substring(2); // شيل 00 لو موجودة
+    }
+    
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '20' + cleanPhone.substring(1); // لو بيبدأ بصفر (01...) حط 20 بدالها
+    } else if (cleanPhone.startsWith('1') && cleanPhone.length === 10) {
+      cleanPhone = '20' + cleanPhone; // لو مكتوب من غير صفر (1...) حط 20 قبله
+    }
+
     const msg = `أهلاً أ/ ${child.name.split(' ')[0]}، نود تذكيركم بضرورة سداد باقي أقساط الطفل ${child.name} وقدرها ${balance} جنيه. شكراً لكم - حضانة الأمل.`;
-    window.open(`https://wa.me/2${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   const printReceipt = () => {
