@@ -113,9 +113,9 @@ export default function App() {
   // الحسابات المباشرة للمؤشرات المحاسبية
   const totalDueFees = children.reduce((sum, c) => sum + (Number(c.dueFee) || 0), 0);
   const totalPaidRevenue = children.reduce((sum, c) => sum + (Number(c.paidFee) || 0), 0);
-  const totalReceivableBalance = totalDueFees - totalPaidRevenue; // المتبقي للتحصيل
+  const totalReceivableBalance = totalDueFees - totalPaidRevenue; 
   const totalExpenses = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-  const netIncome = totalPaidRevenue - totalExpenses; // صافي الربح التشغيلي
+  const netIncome = totalPaidRevenue - totalExpenses; 
 
   // تسجيل الدخول
   const handleLogin = (e) => {
@@ -232,13 +232,13 @@ export default function App() {
     alert('تم إضافة النشاط بنجاح!');
   };
 
-  // 🗑️ دوال الحذف العامة لجميع الأقسام
-  const deleteChild = (id) => { if (confirm('هل أنت تأكد من حذف الطفل؟')) setChildren(children.filter(c => c.id !== id)); };
-  const deleteClassroom = (id) => { if (confirm('هل أنت تأكد من حذف الفصل؟')) setClassrooms(classrooms.filter(c => c.id !== id)); };
-  const deleteExpense = (id) => { if (confirm('هل أنت تأكد من حذف هذا المصروف؟')) setExpenses(expenses.filter(e => e.id !== id)); };
-  const deleteVideo = (id) => { if (confirm('هل أنت تأكد من حذف الفيديو؟')) setVideos(videos.filter(v => v.id !== id)); };
-  const deleteActivity = (id) => { if (confirm('هل أنت تأكد من حذف النشاط؟')) setActivities(activities.filter(a => a.id !== id)); };
-  const deleteUser = (id) => { if (confirm('هل أنت تأكد من حذف الحساب؟')) setUsers(users.filter(u => u.id !== id)); };
+  // دوال الحذف العامة
+  const deleteChild = (id) => { if (window.confirm('هل أنت متأكد من حذف الطفل؟')) setChildren(children.filter(c => c.id !== id)); };
+  const deleteClassroom = (id) => { if (window.confirm('هل أنت متأكد من حذف الفصل؟')) setClassrooms(classrooms.filter(c => c.id !== id)); };
+  const deleteExpense = (id) => { if (window.confirm('هل أنت متأكد من حذف هذا المصروف؟')) setExpenses(expenses.filter(e => e.id !== id)); };
+  const deleteVideo = (id) => { if (window.confirm('هل أنت متأكد من حذف الفيديو؟')) setVideos(videos.filter(v => v.id !== id)); };
+  const deleteActivity = (id) => { if (window.confirm('هل أنت متأكد من حذف النشاط؟')) setActivities(activities.filter(a => a.id !== id)); };
+  const deleteUser = (id) => { if (window.confirm('هل أنت متأكد من حذف الحساب؟')) setUsers(users.filter(u => u.id !== id)); };
 
   const handleStatusChange = (id, status) => {
     const updated = children.map(c => {
@@ -324,7 +324,6 @@ export default function App() {
       </header>
 
       <div className="flex-1 flex flex-col md:flex-row p-6 gap-6">
-        {/* القائمة الجانبية */}
         <aside className="w-full md:w-64 bg-white rounded-3xl p-4 border border-slate-200 shadow-sm h-fit">
           <nav className="space-y-1">
             <button
@@ -386,9 +385,7 @@ export default function App() {
           </nav>
         </aside>
 
-        {/* المحتوى الرئيسي */}
         <main className="flex-1">
-          {/* لوحة التحكم */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
               <div className="bg-indigo-600 rounded-3xl p-6 text-white shadow-md">
@@ -416,7 +413,6 @@ export default function App() {
             </div>
           )}
 
-          {/* 1. الأطفال والطلاب + المبالغ المستحقة والحذف */}
           {activeTab === 'children' && (
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
@@ -508,7 +504,6 @@ export default function App() {
             </div>
           )}
 
-          {/* 2. الرسوم والتحصيل وحساب الصافي المستحق */}
           {activeTab === 'fees' && (
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
@@ -536,7 +531,8 @@ export default function App() {
                           <td className="p-4 font-bold text-slate-800">{child.dueFee}</td>
                           <td className="p-4 font-bold text-emerald-600">{child.paidFee}</td>
                           <td className="p-4">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${balance === 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}> {balance === 0 ? 'مخالص بالكامل ✔️' : `${balance} متبقي`}
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${balance === 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                              {balance === 0 ? 'مخالص بالكامل ✔️' : `${balance} متبقي`}
                             </span>
                           </td>
                           <td className="p-4 text-center">
@@ -563,7 +559,6 @@ export default function App() {
             </div>
           )}
 
-          {/* 3. قائمة الإيرادات والمصروفات وفق المعايير المحاسبية */}
           {activeTab === 'accounting' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -588,4 +583,371 @@ export default function App() {
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
                   <div>
                     <span className="text-slate-400 text-xs font-semibold">صافي الربح التشغيلي</span>
-                    <h3 className={`text-2xl font-bold mt-1
+                    <h3 className={`text-2xl font-bold mt-1 ${netIncome >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>{netIncome}</h3>
+                  </div>
+                  <div className="bg-indigo-50 p-3 rounded-2xl text-indigo-600">
+                    <PieChart className="w-6 h-6" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h3 className="text-lg font-bold text-slate-800 mb-3">تسجيل مصروف جديد</h3>
+                <form onSubmit={handleAddExpense} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <input
+                    type="text"
+                    value={newExpenseTitle}
+                    onChange={(e) => setNewExpenseTitle(e.target.value)}
+                    placeholder="بيان المصروف..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    required
+                  />
+                  <input
+                    type="number"
+                    value={newExpenseAmount}
+                    onChange={(e) => setNewExpenseAmount(e.target.value)}
+                    placeholder="المبلغ..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    required
+                  />
+                  <select
+                    value={newExpenseCategory}
+                    onChange={(e) => setNewExpenseCategory(e.target.value)}
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white"
+                  >
+                    <option value="أجور ورواتب">أجور ورواتب</option>
+                    <option value="إيجار ومرافق">إيجار ومرافق</option>
+                    <option value="مستلزمات تعليمية">مستلزمات تعليمية</option>
+                    <option value="صيانة وتشغيل">صيانة وتشغيل</option>
+                  </select>
+                  <button
+                    type="submit"
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-semibold px-4 py-2 rounded-xl text-sm flex items-center justify-center gap-1 transition shadow-md"
+                  >
+                    <Plus className="w-4 h-4" /> إضافة مصروف
+                  </button>
+                </form>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-slate-100 bg-slate-50">
+                  <h4 className="font-bold text-slate-700 text-sm">سجل المصروفات التشغيلية والعمومية</h4>
+                </div>
+                <table className="w-full text-right border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-600 text-xs">
+                      <th className="p-4 font-bold">التاريخ</th>
+                      <th className="p-4 font-bold">بيان المصروف</th>
+                      <th className="p-4 font-bold">التصنيف المحاسبي</th>
+                      <th className="p-4 font-bold">المبلغ</th>
+                      <th className="p-4 font-bold text-center">حذف</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                    {expenses.map(exp => (
+                      <tr key={exp.id} className="hover:bg-slate-50 transition">
+                        <td className="p-4 text-xs text-slate-500 font-mono">{exp.date}</td>
+                        <td className="p-4 font-semibold text-slate-800">{exp.title}</td>
+                        <td className="p-4 text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full w-fit">{exp.category}</td>
+                        <td className="p-4 font-bold text-rose-600">{exp.amount}</td>
+                        <td className="p-4 text-center">
+                          <button
+                            onClick={() => deleteExpense(exp.id)}
+                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'classrooms' && (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h2 className="text-xl font-bold text-slate-800 mb-1">إدارة الفصول الدراسية</h2>
+                <form onSubmit={handleAddClassroom} className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-4">
+                  <input
+                    type="text"
+                    value={newClassroomName}
+                    onChange={(e) => setNewClassroomName(e.target.value)}
+                    placeholder="اسم الفصل..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    required
+                  />
+                  <input
+                    type="text"
+                    value={newClassroomSupervisor}
+                    onChange={(e) => setNewClassroomSupervisor(e.target.value)}
+                    placeholder="المشرفة المسؤولة..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  />
+                  <input
+                    type="text"
+                    value={newClassroomAge}
+                    onChange={(e) => setNewClassroomAge(e.target.value)}
+                    placeholder="الفئة العمرية..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm flex items-center justify-center gap-1 transition shadow-md"
+                  >
+                    <Plus className="w-4 h-4" /> إضافة فصل
+                  </button>
+                </form>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {classrooms.map(cls => (
+                  <div key={cls.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex justify-between items-center">
+                    <div>
+                      <span className="text-xs bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full font-bold mb-2 inline-block">الفئة: {cls.ageGroup}</span>
+                      <h3 className="font-bold text-slate-800 text-lg">{cls.name}</h3>
+                      <p className="text-slate-400 text-xs mt-1">المشرفة: {cls.supervisor}</p>
+                    </div>
+                    <button
+                      onClick={() => deleteClassroom(cls.id)}
+                      className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'videos' && (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h2 className="text-xl font-bold text-slate-800 mb-1">الفيديوهات التعليمية والترفيهية</h2>
+                <form onSubmit={handleAddVideo} className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-4">
+                  <input
+                    type="text"
+                    value={newVideoTitle}
+                    onChange={(e) => setNewVideoTitle(e.target.value)}
+                    placeholder="عنوان الفيديو..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    required
+                  />
+                  <input
+                    type="url"
+                    value={newVideoUrl}
+                    onChange={(e) => setNewVideoUrl(e.target.value)}
+                    placeholder="رابط الفيديو..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    required
+                  />
+                  <select
+                    value={newVideoCategory}
+                    onChange={(e) => setNewVideoCategory(e.target.value)}
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white"
+                  >
+                    <option value="تعليمي">تعليمي</option>
+                    <option value="ترفيهي">ترفيهي</option>
+                  </select>
+                  <button
+                    type="submit"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm flex items-center justify-center gap-1 transition shadow-md"
+                  >
+                    <Plus className="w-4 h-4" /> إضافة فيديو
+                  </button>
+                </form>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {videos.map(vid => (
+                  <div key={vid.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="inline-block px-3 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-600">{vid.category}</span>
+                        <button onClick={() => deleteVideo(vid.id)} className="text-rose-600 hover:bg-rose-50 p-1.5 rounded-xl transition">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <h3 className="font-bold text-slate-800 text-base mb-2">{vid.title}</h3>
+                    </div>
+                    <a href={vid.url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 font-semibold hover:underline flex items-center gap-1 mt-3">
+                      <Video className="w-4 h-4" /> مشاهدة الفيديو
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'activities' && (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h2 className="text-xl font-bold text-slate-800">جدول الأنشطة اليومية</h2>
+                <form onSubmit={handleAddActivity} className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <input
+                    type="text"
+                    value={newActivityTitle}
+                    onChange={(e) => setNewActivityTitle(e.target.value)}
+                    placeholder="عنوان النشاط..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    required
+                  />
+                  <select
+                    value={newActivityCategory}
+                    onChange={(e) => setNewActivityCategory(e.target.value)}
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white"
+                  >
+                    <option value="إنجاز">إنجاز</option>
+                    <option value="وجبات">وجبات</option>
+                  </select>
+                  <input
+                    type="text"
+                    value={newActivityTime}
+                    onChange={(e) => setNewActivityTime(e.target.value)}
+                    placeholder="الوقت..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm flex items-center justify-center gap-1 transition shadow-md"
+                  >
+                    <Plus className="w-4 h-4" /> إضافة نشاط
+                  </button>
+                </form>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {activities.map(act => (
+                  <div key={act.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
+                    <div>
+                      <span className={`inline-block px-3 py-0.5 rounded-full text-xs font-bold mb-2 ${act.category === 'وجبات' ? 'bg-purple-100 text-purple-600' : 'bg-pink-100 text-pink-600'}`}>{act.category}</span>
+                      <h3 className="font-bold text-slate-800 text-base mb-1">{act.title}</h3>
+                      <p className="text-slate-400 text-xs">الوقت: {act.time}</p>
+                    </div>
+                    <button onClick={() => deleteActivity(act.id)} className="text-rose-600 hover:bg-rose-50 p-2 rounded-xl transition">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'attendance' && (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h2 className="text-xl font-bold text-slate-800 mb-1">سجل الحضور والغياب اليومي</h2>
+              </div>
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <table className="w-full text-right border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-600 text-xs">
+                      <th className="p-4 font-bold">اسم الطفل</th>
+                      <th className="p-4 font-bold">وقت الحضور</th>
+                      <th className="p-4 font-bold text-center">التحكم بالحالة</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                    {children.map(child => (
+                      <tr key={child.id} className="hover:bg-slate-50 transition">
+                        <td className="p-4 font-semibold text-slate-800">{child.name}</td>
+                        <td className="p-4 text-xs text-slate-500">{child.checkIn}</td>
+                        <td className="p-4 text-center space-x-2 space-x-reverse">
+                          <button
+                            onClick={() => handleStatusChange(child.id, 'present')}
+                            className={`px-3 py-1 rounded-xl text-xs font-bold transition ${child.status === 'present' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600'}`}
+                          >
+                            حاضر ✔️
+                          </button>
+                          <button
+                            onClick={() => handleStatusChange(child.id, 'absent')}
+                            className={`px-3 py-1 rounded-xl text-xs font-bold transition ${child.status === 'absent' ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-600'}`}
+                          >
+                            غائب ✖️
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'permissions' && currentUser?.role === 'admin' && (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h2 className="text-xl font-bold text-slate-800 mb-1">إدارة الصلاحيات والمستخدمين</h2>
+                <form onSubmit={handleAddUser} className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="الاسم الكامل..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    required
+                  />
+                  <input
+                    type="text"
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                    placeholder="اسم المستخدم..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    required
+                  />
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="كلمة المرور..."
+                    className="px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    required
+                  />
+                  <div className="flex gap-2">
+                    <select
+                      value={newRole}
+                      onChange={(e) => setNewRole(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white"
+                    >
+                      <option value="admin">مدير النظام</option>
+                      <option value="teacher">معلمة</option>
+                      <option value="accountant">محاسب</option>
+                    </select>
+                    <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm flex items-center justify-center transition shadow-md">
+                      إضافة
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+                <h3 className="font-bold text-slate-800 text-base mb-4">قائمة مستخدمي النظام والصلاحيات</h3>
+                <div className="space-y-2">
+                  {users.map(u => (
+                    <div key={u.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                      <div>
+                        <span className="font-bold text-slate-800 text-sm block">{u.name}</span>
+                        <span className="text-xs text-slate-400">اسم المستخدم: {u.username}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="bg-indigo-100 text-indigo-700 text-xs px-3 py-1 rounded-full font-bold">{u.roleLabel}</span>
+                        {u.username !== 'admin' && (
+                          <button onClick={() => deleteUser(u.id)} className="text-rose-600 hover:bg-rose-50 p-1.5 rounded-xl transition">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
