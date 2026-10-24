@@ -1,245 +1,118 @@
-import React, { useState } from 'react';
-import {
-Users,
-UserCheck,
-UserX,
-Plus,
-Search,
-Trash2,
-Calendar,
-Heart,
-Baby
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+
+// 🎨 اللوجو المدمج كـ SVG Data URL
+const NURSERY_LOGO = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 500'><circle cx='250' cy='220' r='120' fill='%23fbbf24'/><path d='M250 80 L250 20 M250 360 L250 420 M110 220 L50 220 M390 220 L450 220 M150 120 L100 70 M350 320 L400 370 M350 120 L400 70 M150 320 L100 370' stroke='%23f59e0b' stroke-width='12' stroke-linecap='round'/><circle cx='210' cy='190' r='12' fill='%231e293b'/><circle cx='290' cy='190' r='12' fill='%231e293b'/><circle cx='180' cy='230' r='18' fill='%23f87171' opacity='0.7'/><circle cx='320' cy='230' r='18' fill='%23f87171' opacity='0.7'/><path d='M210 250 Q250 290 290 250' fill='none' stroke='%231e293b' stroke-width='8' stroke-linecap='round'/><path d='M100 340 C180 300 320 300 400 340 C320 380 180 380 100 340 Z' fill='%23334155'/><text x='250' y='60' text-anchor='middle' font-family='sans-serif' font-weight='bold' font-size='26' fill='%231e3a8a'>حضانة الأمل الخاصة</text><text x='250' y='430' text-anchor='middle' font-family='sans-serif' font-weight='bold' font-size='28' fill='%231e3a8a'>ثنائية اللغة بصنبو</text></svg>";
+
+const PERMISSION_LIST = [
+  { key: 'viewDashboard', label: 'رؤية لوحة التحكم' },
+  { key: 'viewChildren', label: 'رؤية قائمة الأطفال' },
+  { key: 'addChild', label: 'إضافة طفل جديد' },
+  { key: 'deleteChild', label: 'حذف طفل' },
+  { key: 'viewFees', label: 'رؤية صفحة الرسوم' },
+  { key: 'collectFees', label: 'تحصيل دفعة (تسجيل إيراد)' },
+  { key: 'viewAccounting', label: 'رؤية الإيرادات والمصروفات' },
+  { key: 'addExpense', label: 'إضافة مصروف' },
+  { key: 'viewReports', label: 'رؤية التقارير الشاملة' },
+  { key: 'manageClassrooms', label: 'إدارة الفصول' },
+  { key: 'manageAttendance', label: 'تسجيل الحضور والغياب' },
+  { key: 'manageActivities', label: 'إدارة الأنشطة' },
+  { key: 'manageVideos', label: 'إدارة الفيديوهات' },
+  { key: 'manageUsers', label: 'إدارة الصلاحيات والمستخدمين' },
+  { key: 'backupData', label: 'النسخ الاحتياطي والاسترجاع' },
+];
+
+const DEFAULT_ROLE_PERMISSIONS = {
+  admin: { viewDashboard: true, viewChildren: true, addChild: true, deleteChild: true, viewFees: true, collectFees: true, viewAccounting: true, addExpense: true, viewReports: true, manageClassrooms: true, manageAttendance: true, manageActivities: true, manageVideos: true, manageUsers: true, backupData: true },
+  teacher: { viewDashboard: true, viewChildren: true, addChild: true, deleteChild: true, viewFees: false, collectFees: false, viewAccounting: false, addExpense: false, viewReports: false, manageClassrooms: true, manageAttendance: true, manageActivities: true, manageVideos: true, manageUsers: false, backupData: false },
+  accountant: { viewDashboard: true, viewChildren: true, addChild: true, deleteChild: false, viewFees: true, collectFees: true, viewAccounting: true, addExpense: true, viewReports: true, manageClassrooms: false, manageAttendance: false, manageActivities: false, manageVideos: false, manageUsers: false, backupData: false }
+};
 
 export default function App() {
-const [children, setChildren] = useState([
-{ id: 1, name: 'أحمد محمد', age: '4 سنوات', isPresent: true, date: '2026-10-24' },
-{ id: 2, name: 'مريم علي', age: '3 سنوات', isPresent: false, date: '2026-10-24' },
-{ id: 3, name: 'عمر خالد', age: '5 سنوات', isPresent: true, date: '2026-10-24' },
-{ id: 4, name: 'فاطمة حسن', age: '4 سنوات', isPresent: true, date: '2026-10-24' },
-]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [usernameInput, setUsernameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [isMounted, setIsMounted] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  
+  // فلاتر التقارير
+  const [reportFromDate, setReportFromDate] = useState('');
+  const [reportToDate, setReportToDate] = useState('');
+  const [reportChildId, setReportChildId] = useState('all');
+  const [reportClassroom, setReportClassroom] = useState('all');
+  
+  // فلاتر الحضور والبحث
+  const [searchChildQuery, setSearchChildQuery] = useState('');
+  const [attendanceFilterClassroom, setAttendanceFilterClassroom] = useState('all');
+  const [attendanceSearchQuery, setAttendanceSearchQuery] = useState('');
+  
+  // إيصال الدفع
+  const [receiptData, setReceiptData] = useState(null);
 
-const [newName, setNewName] = useState('');
-const [newAge, setNewAge] = useState('');
-const [searchTerm, setSearchTerm] = useState('');
+  // States التعديل
+  const [editingChildId, setEditingChildId] = useState(null);
+  const [editingUserId, setEditingUserId] = useState(null);
 
-// إحصائيات الأطفال
-const totalCount = children.length;
-const presentCount = children.filter((child) => child.isPresent).length;
-const absentCount = totalCount - presentCount;
+  const [users, setUsers] = useState(() => {
+    const saved = localStorage.getItem('nursery_users');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, username: 'admin', password: '123', name: 'محمد عرفه', role: 'admin', roleLabel: 'مدير النظام' },
+      { id: 2, username: 'teacher', password: '123', name: 'سارة علي', role: 'teacher', roleLabel: 'معلمة' },
+      { id: 3, username: 'accountant', password: '123', name: 'محمد حسن', role: 'accountant', roleLabel: 'محاسب' }
+    ];
+  });
 
-// إضافة طفل جديد
-const handleAddChild = (e) => {
-e.preventDefault();
-if (!newName.trim() || !newAge.trim()) return;
+  const [userPermissions, setUserPermissions] = useState(() => {
+    const saved = localStorage.getItem('nursery_user_permissions');
+    if (saved) return JSON.parse(saved);
+    const initialPerms = {};
+    users.forEach(u => { initialPerms[u.id] = { ...DEFAULT_ROLE_PERMISSIONS[u.role] }; });
+    return initialPerms;
+  });
 
-const newChild = {
-  id: Date.now(),
-  name: newName,
-  age: newAge,
-  isPresent: true,
-  date: new Date().toISOString().split('T')[0],
-};
+  const [selectedUserId, setSelectedUserId] = useState(null);
 
-setChildren([...children, newChild]);
-setNewName('');
-setNewAge('');
+  const [attendanceLogs, setAttendanceLogs] = useState(() => {
+    const saved = localStorage.getItem('nursery_attendance_logs');
+    if (saved) return JSON.parse(saved);
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    return [
+      { id: 1, childId: 1, date: today, status: 'present', checkIn: '07:45 ص' },
+      { id: 2, childId: 2, date: today, status: 'present', checkIn: '08:00 ص' },
+      { id: 3, childId: 3, date: today, status: 'absent', checkIn: '-' },
+      { id: 4, childId: 1, date: yesterday, status: 'absent', checkIn: '-' },
+      { id: 5, childId: 2, date: yesterday, status: 'present', checkIn: '08:10 ص' },
+    ];
+  });
 
+  useEffect(() => { localStorage.setItem('nursery_users', JSON.stringify(users)); }, [users]);
+  useEffect(() => { localStorage.setItem('nursery_user_permissions', JSON.stringify(userPermissions)); }, [userPermissions]);
+  useEffect(() => { localStorage.setItem('nursery_attendance_logs', JSON.stringify(attendanceLogs)); }, [attendanceLogs]);
+  useEffect(() => { setIsMounted(true); }, []);
 
-};
+  const hasPermission = (key) => {
+    if (!currentUser) return false;
+    if (currentUser.username === 'admin') return true;
+    const perms = userPermissions[currentUser.id] || DEFAULT_ROLE_PERMISSIONS[currentUser.role];
+    return perms?.[key] === true;
+  };
 
-// تغيير حالة الحضور/الغياب
-const toggleAttendance = (id) => {
-setChildren(
-children.map((child) =>
-child.id === id ? { ...child, isPresent: !child.isPresent } : child
-)
-);
-};
+  const toggleUserPermission = (userId, key) => {
+    const user = users.find(u => u.id === userId);
+    if (user && user.username === 'admin') return alert('لا يمكن تعديل صلاحيات المدير الأساسي!');
+    setUserPermissions(prev => {
+      const userPerms = prev[userId] || { ...DEFAULT_ROLE_PERMISSIONS[user.role] };
+      return { ...prev, [userId]: { ...userPerms, [key]: !userPerms[key] } };
+    });
+  };
 
-// حذف طفل
-const handleDelete = (id) => {
-setChildren(children.filter((child) => child.id !== id));
-};
+  const [newUsername, setNewUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newRole, setNewRole] = useState('teacher');
 
-// تصفية الأطفال حسب البحث
-const filteredChildren = children.filter((child) =>
-child.name.toLowerCase().includes(searchTerm.toLowerCase())
-);
-
-return (
-
-{/* Header */}
-
-
-
-
-
-
-
-روضة الأمل
-نظام تسجيل وحضور الأطفال
-
-
-
-
-{new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-
-
-
-
-  <main className="max-w-6xl mx-auto px-4 py-8">
-    {/* Statistics Cards */}
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
-        <div>
-          <p className="text-slate-500 text-sm font-medium">إجمالي الأطفال</p>
-          <h3 className="text-3xl font-bold text-slate-800 mt-1">{totalCount}</h3>
-        </div>
-        <div className="bg-blue-50 p-4 rounded-xl text-blue-600">
-          <Users className="w-6 h-6" />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
-        <div>
-          <p className="text-slate-500 text-sm font-medium">الحاضرون</p>
-          <h3 className="text-3xl font-bold text-emerald-600 mt-1">{presentCount}</h3>
-        </div>
-        <div className="bg-emerald-50 p-4 rounded-xl text-emerald-600">
-          <UserCheck className="w-6 h-6" />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
-        <div>
-          <p className="text-slate-500 text-sm font-medium">الغياب</p>
-          <h3 className="text-3xl font-bold text-rose-600 mt-1">{absentCount}</h3>
-        </div>
-        <div className="bg-rose-50 p-4 rounded-xl text-rose-600">
-          <UserX className="w-6 h-6" />
-        </div>
-      </div>
-    </div>
-
-    {/* Form and List Section */}
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Add Child Form */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-fit">
-        <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <Plus className="w-5 h-5 text-indigo-600" />
-          إضافة طفل جديد
-        </h2>
-        <form onSubmit={handleAddChild} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">اسم الطفل</label>
-            <input
-              type="text"
-              placeholder="مثال: أحمد محمد"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">العمر</label>
-            <input
-              type="text"
-              placeholder="مثال: 4 سنوات"
-              value={newAge}
-              onChange={(e) => setNewAge(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            حفظ البيانات
-          </button>
-        </form>
-      </div>
-
-      {/* Children List */}
-      <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <h2 className="text-lg font-bold text-slate-800">قائمة الأطفال</h2>
-          
-          {/* Search */}
-          <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="بحث عن طفل..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pr-9 pl-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-            />
-          </div>
-        </div>
-
-        {/* List */}
-        {filteredChildren.length === 0 ? (
-          <div className="text-center py-12 text-slate-400">
-            لا يوجد أطفال مطبق عليهم خيار البحث.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredChildren.map((child) => (
-              <div
-                key={child.id}
-                className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:border-slate-200 transition-all bg-slate-50/50"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${child.isPresent ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                  <div>
-                    <h4 className="font-semibold text-slate-800 text-sm">{child.name}</h4>
-                    <span className="text-xs text-slate-500">{child.age}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => toggleAttendance(child.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                      child.isPresent
-                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                        : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
-                    }`}
-                  >
-                    {child.isPresent ? (
-                      <>
-                        <UserCheck className="w-3.5 h-3.5" />
-                        حاضر
-                      </>
-                    ) : (
-                      <>
-                        <UserX className="w-3.5 h-3.5" />
-                        غائب
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => handleDelete(child.id)}
-                    className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
-                    title="حذف"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  </main>
-</div>
-
-
-);
-}
+  const [children, setChildren] = useState(() => {
+    const saved = localStorage.getItem('nursery_children');
+    return saved ?
